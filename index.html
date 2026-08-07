@@ -3,129 +3,99 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bản đồ Việt Nam 34 tỉnh/thành - SVG Editor</title>
+  <title>Bản đồ Việt Nam 34 tỉnh/thành - Infographic SVG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&family=Roboto+Condensed:wght@600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --bg:#f4f7fb;
-      --panel:#ffffff;
-      --text:#172033;
-      --muted:#6b7485;
-      --border:#dbe2ea;
-      --primary:#2563eb;
-      --primary-2:#1d4ed8;
-      --danger:#dc2626;
-      --shadow:0 12px 35px rgba(15,23,42,.09);
-    }
+    :root{--ink:#20252b;--muted:#667085;--panel:#fffdf8;--line:#ded5c7;--red:#e11d48;--red2:#ef3340;--cream:#f7ead2;--shadow:0 18px 50px rgba(64,45,24,.13)}
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    button,input,select,textarea{font:inherit}
-    .app{height:100%;display:grid;grid-template-columns:330px 1fr;gap:14px;padding:14px}
-    .panel,.workspace{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
-    .panel{display:flex;flex-direction:column;overflow:hidden}
-    .panel-header{padding:18px 18px 12px;border-bottom:1px solid var(--border)}
-    .title{font-size:18px;font-weight:800;margin:0 0 6px}
-    .sub{font-size:12px;color:var(--muted);line-height:1.5}
-    .controls{padding:14px;display:grid;gap:12px;overflow:auto}
-    .group{padding:12px;border:1px solid var(--border);border-radius:12px;background:#fbfcfe}
-    .group-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;color:#475569}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    html,body{height:100%;margin:0}
+    body{font-family:"Be Vietnam Pro",Arial,sans-serif;color:var(--ink);background:#eadfcf}
+    button,input,select{font:inherit}
+    .app{height:100%;display:grid;grid-template-columns:310px minmax(0,1fr);gap:12px;padding:12px}
+    .panel,.workspace{border:1px solid rgba(100,78,51,.16);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+    .panel{background:rgba(255,253,248,.97);display:flex;flex-direction:column}
+    .panel-head{padding:18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fffdf9,#fbf4e9)}
+    .panel-head h1{font-family:"Roboto Condensed",sans-serif;font-size:22px;line-height:1;margin:0 0 8px;font-weight:900;text-transform:uppercase}
+    .panel-head p{margin:0;color:var(--muted);font-size:11px;line-height:1.55}
+    .controls{padding:13px;display:grid;gap:11px;overflow:auto}
+    .group{border:1px solid var(--line);border-radius:13px;background:#fff;padding:11px}
+    .group-title{font-family:"Roboto Condensed",sans-serif;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.055em;color:#4c4035;margin-bottom:9px}
     .field{display:grid;gap:6px;margin-top:8px}
-    label{font-size:12px;color:#475569;font-weight:700}
-    input[type="text"],select,textarea{width:100%;border:1px solid #cfd7e3;border-radius:9px;padding:9px 10px;background:white;color:var(--text);outline:none}
-    input[type="text"]:focus,select:focus,textarea:focus{border-color:#93b4ff;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-    input[type="color"]{width:100%;height:38px;border:1px solid #cfd7e3;border-radius:9px;background:white;padding:3px;cursor:pointer}
-    input[type="range"]{width:100%}
-    .btn{border:1px solid #cfd7e3;background:white;color:#243047;border-radius:9px;padding:9px 10px;cursor:pointer;font-weight:700;font-size:12px;transition:.15s}
-    .btn:hover{transform:translateY(-1px);border-color:#9fb0c5}
-    .btn.primary{background:var(--primary);border-color:var(--primary);color:white}
-    .btn.primary:hover{background:var(--primary-2)}
-    .btn.danger{color:var(--danger)}
-    .check{display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;font-weight:700;margin-top:8px}
-    .check input{width:16px;height:16px}
-    .selected-card{padding:10px;border-radius:10px;background:#eef4ff;border:1px solid #cfe0ff;font-size:12px;line-height:1.55}
-    .selected-card b{font-size:14px}
-    .status{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.45}
-    .workspace{position:relative;overflow:hidden;min-width:0}
-    .toolbar{height:58px;display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.94);position:relative;z-index:5}
-    .toolbar .spacer{flex:1}
-    .badge{font-size:11px;border-radius:999px;padding:6px 9px;background:#edf2f7;color:#526070;font-weight:700;white-space:nowrap}
-    .canvas-wrap{position:absolute;inset:58px 0 0;background:linear-gradient(135deg,#f8fafc,#edf3f9);overflow:hidden;touch-action:none}
-    #mapSvg{width:100%;height:100%;display:block;user-select:none}
-    .province{vector-effect:non-scaling-stroke;cursor:pointer;transition:filter .12s, opacity .12s}
-    .province:hover{filter:brightness(.92)}
-    .province.selected{filter:drop-shadow(0 0 4px rgba(37,99,235,.85));stroke:#1d4ed8 !important;stroke-width:2.3 !important}
-    .province.hidden{opacity:.06;pointer-events:none}
-    .province-label{font-weight:800;fill:#172033;paint-order:stroke;stroke:white;stroke-width:3px;stroke-linejoin:round;pointer-events:none;text-anchor:middle;dominant-baseline:middle}
-    .province-label.hidden{display:none}
-    .hanoi-dot{fill:#ef4444;stroke:white;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
-    .tooltip{position:absolute;z-index:20;pointer-events:none;background:#0f172a;color:white;padding:7px 9px;border-radius:8px;font-size:12px;font-weight:700;box-shadow:0 8px 18px rgba(15,23,42,.2);opacity:0;transform:translate(10px,10px)}
-    .loading{position:absolute;inset:0;display:grid;place-items:center;z-index:10;background:rgba(248,250,252,.92)}
-    .loading-card{width:min(430px,90%);background:white;border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center;box-shadow:var(--shadow)}
-    .bar{height:8px;background:#e8edf4;border-radius:999px;overflow:hidden;margin:12px 0 8px}
-    .bar > div{height:100%;width:0;background:#2563eb;transition:width .2s}
-    .modal{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99;display:none;align-items:center;justify-content:center;padding:20px}
-    .modal.open{display:flex}
-    .modal-card{width:min(900px,95vw);height:min(720px,90vh);background:white;border-radius:16px;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.25)}
-    .modal-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
-    .modal-head b{flex:1}
-    .modal-body{padding:14px;display:flex;flex-direction:column;gap:10px;min-height:0;flex:1}
-    #pathEditor{flex:1;resize:none;font-family:Consolas,monospace;font-size:11px;line-height:1.4}
-    .hint{font-size:11px;color:var(--muted);line-height:1.45}
-    @media (max-width:850px){
-      .app{grid-template-columns:1fr;padding:8px;height:auto;min-height:100%}
-      .panel{max-height:none}
-      .workspace{height:72vh;min-height:600px}
-    }
+    label{font-size:11px;font-weight:700;color:#5a5148}
+    select,input[type="text"]{width:100%;border:1px solid #d9d0c4;border-radius:9px;background:#fffdfa;color:#29231e;padding:8px 9px;outline:none}
+    input[type="color"]{width:100%;height:36px;border:1px solid #d9d0c4;border-radius:9px;background:#fff;padding:3px}
+    input[type="range"]{width:100%;accent-color:var(--red)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .check{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;font-weight:700;color:#5a5148}
+    .check input{width:16px;height:16px;accent-color:var(--red)}
+    .btn{border:1px solid #d4c9bb;background:#fffdfa;color:#342d27;border-radius:9px;padding:8px 9px;font-size:11px;font-weight:800;cursor:pointer;transition:.15s}
+    .btn:hover{transform:translateY(-1px);border-color:#b7a994}
+    .btn.primary{background:var(--red);border-color:var(--red);color:white}
+    .selected{border:1px solid #f2b6c3;background:#fff3f6;border-radius:10px;padding:9px;font-size:11px;line-height:1.5}
+    .selected b{font-family:"Roboto Condensed",sans-serif;font-size:15px;text-transform:uppercase}
+    .tip{font-size:10.5px;line-height:1.5;color:var(--muted);margin-top:7px}
+    .workspace{position:relative;background:#f7ead2;min-width:0}
+    .toolbar{height:54px;display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(255,253,248,.95);border-bottom:1px solid rgba(107,81,48,.15);position:relative;z-index:5}
+    .toolbar .space{flex:1}
+    .badge{font-size:10px;font-weight:800;padding:6px 9px;border-radius:999px;background:#fff0f3;color:#a7193c;border:1px solid #f5c2ce}
+    .canvas{position:absolute;inset:54px 0 0;overflow:hidden;touch-action:none;background:#f5e8d3}
+    #mapSvg{display:block;width:100%;height:100%;user-select:none}
+    .province{cursor:pointer;vector-effect:non-scaling-stroke;transition:filter .15s,opacity .15s}
+    .province:hover{filter:brightness(.95) saturate(1.08)}
+    .province.active{stroke:#d51442!important;stroke-width:2.3!important;filter:drop-shadow(0 0 4px rgba(225,29,72,.55))}
+    .province.is-hidden{opacity:.08;pointer-events:none}
+    .province-label{font-family:"Roboto Condensed","Be Vietnam Pro",sans-serif;font-weight:900;fill:#171717;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:#fff7e8;stroke-width:3px;stroke-linejoin:round;pointer-events:none;letter-spacing:.15px}
+    .province-label.target{font-size:14px}
+    .province-label.normal{font-size:10.8px}
+    .distance-label{font-family:"Be Vietnam Pro",sans-serif;font-size:8.8px;font-weight:700;fill:#333;stroke:#fff7e8;stroke-width:2.5px;paint-order:stroke;pointer-events:none;text-anchor:middle}
+    .route{fill:none;stroke:#e11d48;stroke-width:2.2;vector-effect:non-scaling-stroke;marker-end:url(#arrowHead);filter:drop-shadow(0 1px 0 rgba(255,255,255,.9))}
+    .route-pin-outer{fill:#fff7e8;stroke:#e11d48;stroke-width:2.2;vector-effect:non-scaling-stroke}
+    .route-pin-inner{fill:#e11d48}
+    .hidden-label{display:none}
+    .tooltip{position:absolute;z-index:20;pointer-events:none;opacity:0;background:#25201b;color:white;border-radius:8px;padding:7px 9px;font-size:11px;font-weight:700;box-shadow:0 10px 22px rgba(0,0,0,.2);transform:translate(10px,10px)}
+    .loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(248,239,223,.94);z-index:15}
+    .loading-card{width:min(430px,90%);background:#fffdf8;border:1px solid #dfd1bc;border-radius:15px;padding:18px;text-align:center;box-shadow:var(--shadow)}
+    .loading-card b{font-family:"Roboto Condensed",sans-serif;font-size:18px}
+    .progress{height:8px;border-radius:999px;background:#eee2d0;overflow:hidden;margin:12px 0 7px}.progress>div{height:100%;width:0;background:var(--red);transition:width .2s}
+    @media(max-width:860px){.app{grid-template-columns:1fr;height:auto;min-height:100%;padding:7px}.workspace{height:75vh;min-height:620px}.panel{max-height:none}}
   </style>
 </head>
 <body>
 <div class="app">
   <aside class="panel">
-    <div class="panel-header">
-      <h1 class="title">Bản đồ Việt Nam SVG</h1>
-      <div class="sub">34 tỉnh/thành • mỗi tỉnh là một SVG path riêng • click tỉnh để chỉnh màu, viền, tên hoặc xuất SVG riêng.</div>
+    <div class="panel-head">
+      <h1>Bản đồ Việt Nam</h1>
+      <p>Phong cách infographic pastel. Mỗi tỉnh vẫn là một SVG path riêng để chỉnh độc lập và xuất SVG.</p>
     </div>
     <div class="controls">
       <div class="group">
-        <div class="group-title">Chọn tỉnh / thành</div>
-        <div class="field">
-          <input id="search" type="text" placeholder="Tìm: Hà Nội, Hải Phòng..." />
-          <select id="provinceSelect" size="7"></select>
-        </div>
-        <div id="selectedCard" class="selected-card" style="margin-top:10px">Chưa chọn tỉnh.</div>
+        <div class="group-title">Tỉnh / thành đang chọn</div>
+        <input id="search" type="text" placeholder="Tìm tỉnh/thành...">
+        <select id="provinceSelect" size="7" style="margin-top:7px"></select>
+        <div id="selectedCard" class="selected" style="margin-top:8px">Chưa chọn tỉnh.</div>
       </div>
 
       <div class="group">
-        <div class="group-title">Chỉnh tỉnh đang chọn</div>
+        <div class="group-title">Màu & hiển thị</div>
         <div class="row">
-          <div class="field" style="margin:0"><label>Màu nền</label><input id="fillColor" type="color" value="#dce8f7"></div>
-          <div class="field" style="margin:0"><label>Màu viền</label><input id="strokeColor" type="color" value="#5f6f82"></div>
+          <div><label>Màu tỉnh</label><input id="fillColor" type="color" value="#f6d48b"></div>
+          <div><label>Màu viền</label><input id="strokeColor" type="color" value="#424242"></div>
         </div>
-        <div class="field"><label>Độ dày viền: <span id="strokeValue">0.9</span> px</label><input id="strokeWidth" type="range" min="0.2" max="4" step="0.1" value="0.9"></div>
+        <div class="field"><label>Độ dày viền: <span id="strokeValue">0.9</span> px</label><input id="strokeWidth" type="range" min="0.3" max="3" value="0.9" step="0.1"></div>
         <label class="check"><input id="showSelectedLabel" type="checkbox" checked> Hiện tên tỉnh đang chọn</label>
         <label class="check"><input id="hideSelected" type="checkbox"> Ẩn tỉnh đang chọn</label>
-        <div class="row">
-          <button id="exportSelected" class="btn primary">Xuất SVG tỉnh</button>
-          <button id="editPath" class="btn">Sửa path SVG</button>
-        </div>
-        <button id="resetSelected" class="btn" style="width:100%;margin-top:8px">Khôi phục tỉnh này</button>
+        <div class="row"><button id="exportSelected" class="btn primary">Xuất SVG tỉnh</button><button id="resetSelected" class="btn">Khôi phục tỉnh</button></div>
       </div>
 
       <div class="group">
-        <div class="group-title">Toàn bản đồ</div>
+        <div class="group-title">Infographic</div>
         <label class="check"><input id="showLabels" type="checkbox" checked> Hiện tên 34 tỉnh/thành</label>
-        <label class="check"><input id="showHanoi" type="checkbox" checked> Đánh dấu Hà Nội</label>
-        <label class="check"><input id="whiteBackground" type="checkbox" checked> Nền trắng khi xuất SVG</label>
-        <div class="row">
-          <button id="exportAll" class="btn primary">Xuất toàn bản đồ</button>
-          <button id="resetAll" class="btn">Khôi phục tất cả</button>
-        </div>
-        <div class="status">Mẹo: lăn chuột để zoom, giữ chuột và kéo để di chuyển bản đồ. Double-click để trở về vị trí mặc định.</div>
-      </div>
-
-      <div class="group">
-        <div class="group-title">Nguồn dữ liệu</div>
-        <div class="hint">Ranh giới cấp tỉnh được nạp từ bộ GeoJSON 34 tỉnh/thành của dự án Vietnamese Provinces Database. File chỉ hiển thị cấp tỉnh, không tải xã/phường.</div>
+        <label class="check"><input id="showRoutes" type="checkbox" checked> 13 mũi tên về Hà Nội</label>
+        <label class="check"><input id="showPickup" type="checkbox" checked> Hiện ô điểm đón Hà Nội</label>
+        <div class="row"><button id="exportAll" class="btn primary">Xuất toàn bản đồ</button><button id="resetAll" class="btn">Khôi phục tất cả</button></div>
+        <div class="tip">Font tên tỉnh: <b>Roboto Condensed 900</b>. Nội dung: <b>Be Vietnam Pro</b>. Đà Nẵng được đặt nhãn thủ công đúng khu vực ven biển miền Trung, dưới Huế và trên Quảng Ngãi.</div>
       </div>
     </div>
   </aside>
@@ -135,396 +105,135 @@
       <button id="zoomIn" class="btn">＋ Zoom</button>
       <button id="zoomOut" class="btn">－ Zoom</button>
       <button id="fitMap" class="btn">Vừa màn hình</button>
-      <div class="spacer"></div>
-      <span id="loadBadge" class="badge">Đang nạp dữ liệu…</span>
+      <div class="space"></div><span id="loadBadge" class="badge">Đang tải dữ liệu…</span>
     </div>
-    <div id="canvasWrap" class="canvas-wrap">
-      <svg id="mapSvg" viewBox="0 0 720 1080" xmlns="http://www.w3.org/2000/svg" aria-label="Bản đồ Việt Nam 34 tỉnh thành">
-        <rect x="0" y="0" width="720" height="1080" fill="#fff" />
+    <div id="canvas" class="canvas">
+      <svg id="mapSvg" viewBox="0 0 1400 1000" xmlns="http://www.w3.org/2000/svg" aria-label="Bản đồ Việt Nam 34 tỉnh thành">
+        <defs>
+          <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f9edd9"/><stop offset=".55" stop-color="#f6e4c9"/><stop offset="1" stop-color="#f1dcc0"/></linearGradient>
+          <linearGradient id="sea" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#bce2f4" stop-opacity="0"/><stop offset=".55" stop-color="#9bd5f3" stop-opacity=".35"/><stop offset="1" stop-color="#63b9ee" stop-opacity=".82"/></linearGradient>
+          <filter id="countryGlow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#f2a3c0" flood-opacity=".82"/></filter>
+          <marker id="arrowHead" markerWidth="8" markerHeight="8" refX="6.6" refY="3.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L7,3.5 L0,7 Z" fill="#e11d48"/></marker>
+        </defs>
+        <rect width="1400" height="1000" fill="url(#paper)"/>
+        <rect x="950" y="0" width="450" height="1000" fill="url(#sea)"/>
+        <g id="pickupLayer"></g>
         <g id="viewport">
-          <g id="mapLayer"></g>
+          <g id="mapLayer" filter="url(#countryGlow)"></g>
+          <g id="routeLayer"></g>
           <g id="labelLayer"></g>
           <g id="markerLayer"></g>
         </g>
       </svg>
       <div id="tooltip" class="tooltip"></div>
-      <div id="loading" class="loading">
-        <div class="loading-card">
-          <b>Đang tải ranh giới 34 tỉnh/thành…</b>
-          <div class="bar"><div id="progress"></div></div>
-          <div id="progressText" class="sub">0 / 34</div>
-          <div class="hint" style="margin-top:8px">File cần kết nối Internet để lấy dữ liệu GeoJSON từ GitHub khi mở.</div>
-        </div>
-      </div>
+      <div id="loading" class="loading"><div class="loading-card"><b>Đang tải ranh giới 34 tỉnh/thành</b><div class="progress"><div id="progress"></div></div><div id="progressText" class="tip">0 / 34</div></div></div>
     </div>
   </main>
-</div>
-
-<div id="pathModal" class="modal">
-  <div class="modal-card">
-    <div class="modal-head"><b>Sửa dữ liệu SVG path của tỉnh</b><button id="closeModal" class="btn">Đóng</button></div>
-    <div class="modal-body">
-      <div class="hint">Bạn có thể sửa trực tiếp thuộc tính <code>d</code>. Nếu path sai cú pháp, hãy bấm “Khôi phục tỉnh này”.</div>
-      <textarea id="pathEditor" spellcheck="false"></textarea>
-      <div class="row" style="grid-template-columns:1fr 1fr;max-width:360px">
-        <button id="applyPath" class="btn primary">Áp dụng path</button>
-        <button id="copyPath" class="btn">Copy path</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <script>
 (() => {
   'use strict';
+  const NS='http://www.w3.org/2000/svg';
+  const BASE='https://raw.githubusercontent.com/thanglequoc/vietnamese-provinces-database/master/json/geojson';
+  const provinces=[
+    ['01','ha_noi','Hà Nội'],['04','cao_bang','Cao Bằng'],['08','tuyen_quang','Tuyên Quang'],['11','dien_bien','Điện Biên'],['12','lai_chau','Lai Châu'],['14','son_la','Sơn La'],['15','lao_cai','Lào Cai'],['19','thai_nguyen','Thái Nguyên'],['20','lang_son','Lạng Sơn'],['22','quang_ninh','Quảng Ninh'],['24','bac_ninh','Bắc Ninh'],['25','phu_tho','Phú Thọ'],['31','hai_phong','Hải Phòng'],['33','hung_yen','Hưng Yên'],['37','ninh_binh','Ninh Bình'],['38','thanh_hoa','Thanh Hóa'],['40','nghe_an','Nghệ An'],['42','ha_tinh','Hà Tĩnh'],['44','quang_tri','Quảng Trị'],['46','hue','Huế'],['48','da_nang','Đà Nẵng'],['51','quang_ngai','Quảng Ngãi'],['52','gia_lai','Gia Lai'],['56','khanh_hoa','Khánh Hòa'],['66','dak_lak','Đắk Lắk'],['68','lam_dong','Lâm Đồng'],['75','dong_nai','Đồng Nai'],['79','ho_chi_minh','TP. Hồ Chí Minh'],['80','tay_ninh','Tây Ninh'],['82','dong_thap','Đồng Tháp'],['86','vinh_long','Vĩnh Long'],['91','an_giang','An Giang'],['92','can_tho','Cần Thơ'],['96','ca_mau','Cà Mau']
+  ].map(([code,slug,name])=>({code,slug,name,url:`${BASE}/${code}_${slug}/${code}_${slug}.geojson`}));
 
-  // ===== CẤU HÌNH DỮ LIỆU 34 TỈNH/THÀNH =====
-  const BASE = 'https://raw.githubusercontent.com/thanglequoc/vietnamese-provinces-database/master/json/geojson';
-  const provinces = [
-    ['01','ha_noi','Hà Nội'],['04','cao_bang','Cao Bằng'],['08','tuyen_quang','Tuyên Quang'],
-    ['11','dien_bien','Điện Biên'],['12','lai_chau','Lai Châu'],['14','son_la','Sơn La'],
-    ['15','lao_cai','Lào Cai'],['19','thai_nguyen','Thái Nguyên'],['20','lang_son','Lạng Sơn'],
-    ['22','quang_ninh','Quảng Ninh'],['24','bac_ninh','Bắc Ninh'],['25','phu_tho','Phú Thọ'],
-    ['31','hai_phong','Hải Phòng'],['33','hung_yen','Hưng Yên'],['37','ninh_binh','Ninh Bình'],
-    ['38','thanh_hoa','Thanh Hóa'],['40','nghe_an','Nghệ An'],['42','ha_tinh','Hà Tĩnh'],
-    ['44','quang_tri','Quảng Trị'],['46','hue','Huế'],['48','da_nang','Đà Nẵng'],
-    ['51','quang_ngai','Quảng Ngãi'],['52','gia_lai','Gia Lai'],['56','khanh_hoa','Khánh Hòa'],
-    ['66','dak_lak','Đắk Lắk'],['68','lam_dong','Lâm Đồng'],['75','dong_nai','Đồng Nai'],
-    ['79','ho_chi_minh','TP. Hồ Chí Minh'],['80','tay_ninh','Tây Ninh'],['82','dong_thap','Đồng Tháp'],
-    ['86','vinh_long','Vĩnh Long'],['91','an_giang','An Giang'],['92','can_tho','Cần Thơ'],['96','ca_mau','Cà Mau']
-  ].map(([code,slug,name]) => ({code,slug,name,url:`${BASE}/${code}_${slug}/${code}_${slug}.geojson`}));
-
-  // Khung bản đồ đất liền Việt Nam. Các phần rất xa ngoài Biển Đông sẽ không làm méo khung chính.
-  const GEO_BOUNDS = { minLon:101.8, maxLon:110.3, minLat:7.8, maxLat:23.8 };
-  const PLOT = { x:115, y:35, w:490, h:1000 };
-  const defaults = { fill:'#dce8f7', stroke:'#5f6f82', strokeWidth:0.9 };
-  const state = {
-    selected:null,
-    features:new Map(),
-    styles:new Map(),
-    originalPaths:new Map(),
-    labels:new Map(),
-    transform:{x:0,y:0,k:1},
-    dragging:false,
-    dragStart:null
+  const bounds={minLon:101.7,maxLon:110.3,minLat:7.8,maxLat:23.8};
+  const plot={x:525,y:25,w:520,h:940};
+  const palette=['#f8d790','#b9d99a','#ffd98b','#f6b994','#c9e4a8','#f2c7df','#ffe59a','#b8d8a8'];
+  const distances={'12':450,'11':455,'14':320,'15':290,'08':130,'04':280,'19':75,'20':155,'25':90,'24':40,'22':200,'31':120,'33':60,'37':95};
+  const routeCodes=['08','04','12','15','19','11','20','14','25','24','22','31','33'];
+  const labelOffsets={
+    '12':[-18,-10],'11':[-16,12],'14':[-6,17],'15':[-2,-18],'08':[10,-22],'04':[28,-12],'19':[18,-4],'20':[35,3],
+    '25':[-21,10],'24':[28,-7],'22':[48,-2],'31':[48,18],'33':[25,24],'37':[18,22],
+    '46':[14,-8],'48':[28,-2],'51':[22,8],'79':[28,12],'92':[22,10]
   };
+  // Tọa độ nhãn thủ công cho các khu vực nhỏ/hẹp. Đà Nẵng: ven biển miền Trung, dưới Huế, trên Quảng Ngãi.
+  const manualLabelGeo={'01':[105.84,21.03],'46':[107.60,16.46],'48':[108.20,16.05],'51':[108.80,15.12],'79':[106.70,10.78],'92':[105.78,10.03]};
+  const curveBias={'12':-34,'11':28,'14':26,'15':-22,'08':-18,'04':28,'19':-12,'20':30,'25':16,'24':-12,'22':34,'31':22,'33':10};
 
-  const $ = (id) => document.getElementById(id);
-  const svg = $('mapSvg');
-  const viewport = $('viewport');
-  const mapLayer = $('mapLayer');
-  const labelLayer = $('labelLayer');
-  const markerLayer = $('markerLayer');
-  const tooltip = $('tooltip');
-  const provinceSelect = $('provinceSelect');
+  const state={selected:null,features:new Map(),styles:new Map(),labels:new Map(),labelPoints:new Map(),transform:{x:0,y:0,k:1},dragging:false,dragStart:null};
+  const $=id=>document.getElementById(id);
+  const svg=$('mapSvg'),viewport=$('viewport'),mapLayer=$('mapLayer'),routeLayer=$('routeLayer'),labelLayer=$('labelLayer'),markerLayer=$('markerLayer'),pickupLayer=$('pickupLayer');
 
-  const escapeHtml = (s) => s.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
-  const slugify = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  function el(name,attrs={}){const n=document.createElementNS(NS,name);Object.entries(attrs).forEach(([k,v])=>n.setAttribute(k,v));return n}
+  function project([lon,lat]){return [plot.x+(lon-bounds.minLon)/(bounds.maxLon-bounds.minLon)*plot.w,plot.y+(bounds.maxLat-lat)/(bounds.maxLat-bounds.minLat)*plot.h]}
+  function walk(c,cb){if(!Array.isArray(c))return;if(typeof c[0]==='number'){cb(c);return}c.forEach(x=>walk(x,cb))}
+  function bbox(g){let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;walk(g.coordinates,c=>{const[x,y]=project(c);if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y});return{minX,minY,maxX,maxY,cx:(minX+maxX)/2,cy:(minY+maxY)/2}}
+  function ringPath(r){if(!r||r.length<3)return'';return r.map((c,i)=>{const[x,y]=project(c);return`${i?'L':'M'}${x.toFixed(2)},${y.toFixed(2)}`}).join('')+'Z'}
+  function geoPath(g){if(!g)return'';if(g.type==='Polygon')return g.coordinates.map(ringPath).join('');if(g.type==='MultiPolygon')return g.coordinates.flatMap(p=>p.map(ringPath)).join('');return''}
+  function styleFor(i,code){return{fill:code==='01'?'#f3b4d2':palette[i%palette.length],stroke:'#3d4143',strokeWidth:.9,hidden:false,showLabel:true}}
+  function labelPoint(meta,b){let p=manualLabelGeo[meta.code]?project(manualLabelGeo[meta.code]):[b.cx,b.cy];const off=labelOffsets[meta.code]||[0,0];return[p[0]+off[0],p[1]+off[1]]}
 
-  function project(coord){
-    const [lon,lat] = coord;
-    const x = PLOT.x + (lon - GEO_BOUNDS.minLon) / (GEO_BOUNDS.maxLon - GEO_BOUNDS.minLon) * PLOT.w;
-    const y = PLOT.y + (GEO_BOUNDS.maxLat - lat) / (GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat) * PLOT.h;
-    return [x,y];
+  function drawProvince(meta,feature,index){
+    const b=bbox(feature.geometry),d=geoPath(feature.geometry);state.features.set(meta.code,{meta,feature,bbox:b});state.styles.set(meta.code,styleFor(index,meta.code));
+    const p=el('path',{id:`province-${meta.code}`,'data-code':meta.code,d,'fill-rule':'evenodd',class:'province'});mapLayer.appendChild(p);applyStyle(meta.code);
+    p.addEventListener('click',e=>{e.stopPropagation();selectProvince(meta.code)});p.addEventListener('pointermove',e=>showTooltip(e,meta.name));p.addEventListener('pointerleave',hideTooltip);
+    const pt=labelPoint(meta,b);state.labelPoints.set(meta.code,pt);drawLabel(meta,pt);
   }
 
-  function ringToPath(ring){
-    if (!ring || ring.length < 3) return '';
-    const pts = ring.map(project);
-    return `M${pts.map((p,i)=>`${i?'L':''}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join('')}Z`;
+  function drawLabel(meta,[x,y]){
+    const isTarget=routeCodes.includes(meta.code)||meta.code==='37';
+    const g=el('g',{id:`label-${meta.code}`,'data-code':meta.code});
+    const t=el('text',{x,y,class:`province-label ${isTarget?'target':'normal'}`});
+    const name=meta.name==='TP. Hồ Chí Minh'?'TP. HỒ CHÍ MINH':meta.name.toLocaleUpperCase('vi');
+    if(name.length>13 && isTarget){
+      const words=name.split(' '),mid=Math.ceil(words.length/2);const a=el('tspan',{x,dy:'-6'});a.textContent=words.slice(0,mid).join(' ');const b=el('tspan',{x,dy:'13'});b.textContent=words.slice(mid).join(' ');t.append(a,b);
+    }else t.textContent=name;
+    g.appendChild(t);
+    if(distances[meta.code]){const dy=(name.length>13&&isTarget)?24:15;const d=el('text',{x,y:y+dy,class:'distance-label'});d.textContent=`≈ ${distances[meta.code]} KM`;g.appendChild(d)}
+    labelLayer.appendChild(g);state.labels.set(meta.code,g);
   }
 
-  function geometryToPath(geometry){
-    if (!geometry) return '';
-    if (geometry.type === 'Polygon') return geometry.coordinates.map(ringToPath).join('');
-    if (geometry.type === 'MultiPolygon') return geometry.coordinates.flatMap(poly => poly.map(ringToPath)).join('');
-    return '';
+  function applyStyle(code){const p=$(`province-${code}`),s=state.styles.get(code);if(!p||!s)return;p.setAttribute('fill',s.fill);p.setAttribute('stroke',s.stroke);p.setAttribute('stroke-width',s.strokeWidth);p.classList.toggle('is-hidden',s.hidden);const l=state.labels.get(code);if(l)l.classList.toggle('hidden-label',!$('showLabels').checked||!s.showLabel||s.hidden)}
+
+  function drawRoutes(){
+    routeLayer.innerHTML='';if(!$('showRoutes').checked||!state.labelPoints.has('01'))return;const h=state.labelPoints.get('01');
+    routeCodes.forEach((code,i)=>{if(!state.labelPoints.has(code))return;const s=state.labelPoints.get(code);const vx=s[0]-h[0],vy=s[1]-h[1],len=Math.hypot(vx,vy)||1;const ex=h[0]+vx/len*31,ey=h[1]+vy/len*31;const mx=(s[0]+ex)/2,my=(s[1]+ey)/2,px=-vy/len,py=vx/len,bias=curveBias[code]||0;const c1x=mx+px*bias,c1y=my+py*bias;const q=el('path',{d:`M${s[0]},${s[1]} Q${c1x},${c1y} ${ex},${ey}`,class:'route'});routeLayer.appendChild(q);const o=el('circle',{cx:s[0],cy:s[1],r:6.5,class:'route-pin-outer'}),inn=el('circle',{cx:s[0],cy:s[1],r:3.2,class:'route-pin-inner'});routeLayer.append(o,inn)});
   }
 
-  function walkCoords(coords, cb){
-    if (!Array.isArray(coords)) return;
-    if (typeof coords[0] === 'number' && typeof coords[1] === 'number') { cb(coords); return; }
-    coords.forEach(c => walkCoords(c, cb));
+  function starPoints(cx,cy,r1,r2,n=5){let out=[];for(let i=0;i<n*2;i++){const a=-Math.PI/2+i*Math.PI/n,r=i%2?r2:r1;out.push(`${cx+Math.cos(a)*r},${cy+Math.sin(a)*r}`)}return out.join(' ')}
+  function drawHanoi(){markerLayer.innerHTML='';if(!state.labelPoints.has('01'))return;const[x,y]=state.labelPoints.get('01');const halo=el('circle',{cx:x,cy:y,r:36,fill:'#fff5f7',stroke:'#e11d48','stroke-width':'2.6'});const c=el('circle',{cx:x,cy:y+24,r:19,fill:'#e52538',stroke:'#fff','stroke-width':'3'});const st=el('polygon',{points:starPoints(x,y+24,11,4.7),fill:'#fff'});markerLayer.append(halo,c,st);const label=state.labels.get('01');if(label)markerLayer.appendChild(label);}
+
+  function drawPickup(){pickupLayer.innerHTML='';if(!$('showPickup').checked)return;const g=el('g',{id:'pickup-card'});const shadow=el('rect',{x:42,y:718,width:375,height:220,rx:8,fill:'#6d5e4a',opacity:'.12'});const card=el('rect',{x:34,y:710,width:375,height:220,rx:7,fill:'#fff0c9',stroke:'#555','stroke-width':'3'});g.append(shadow,card);
+    const pinC=el('circle',{cx:88,cy:707,r:20,fill:'#ed6b75',stroke:'#555','stroke-width':'4'}),pinL=el('path',{d:'M102 721 L123 744',stroke:'#555','stroke-width':'7','stroke-linecap':'round'});g.append(pinL,pinC);
+    const title=el('text',{x:221,y:785,'text-anchor':'middle','font-family':'Roboto Condensed, sans-serif','font-size':'24','font-weight':'900',fill:'#111'});title.textContent='ĐIỂM ĐÓN TẠI HÀ NỘI';g.appendChild(title);
+    const lines=[['📍','Nhà hát Lớn Hà Nội',824,'800'],['◷','Thời gian đón: 05h30',858,'700'],['','Quý khách vui lòng có mặt trước 15 phút.',895,'500']];lines.forEach(([ico,txt,y,w])=>{const t=el('text',{x:55,y,'font-family':'Be Vietnam Pro, sans-serif','font-size':'16','font-weight':w,fill:'#171717'});t.textContent=(ico?ico+'  ':'')+txt;g.appendChild(t)});pickupLayer.appendChild(g);
   }
 
-  function geometryBBox(geometry){
-    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-    walkCoords(geometry.coordinates, coord => {
-      const [x,y]=project(coord);
-      if (x<minX) minX=x; if (x>maxX) maxX=x; if (y<minY) minY=y; if (y>maxY) maxY=y;
-    });
-    return {minX,minY,maxX,maxY,cx:(minX+maxX)/2,cy:(minY+maxY)/2,w:maxX-minX,h:maxY-minY};
-  }
+  function selectProvince(code){state.selected=code;document.querySelectorAll('.province.active').forEach(x=>x.classList.remove('active'));const p=$(`province-${code}`);if(p)p.classList.add('active');$('provinceSelect').value=code;syncEditor()}
+  function syncEditor(){if(!state.selected||!state.features.has(state.selected))return;const{meta}=state.features.get(state.selected),s=state.styles.get(state.selected);$('selectedCard').innerHTML=`<b>${meta.name}</b><br>Mã tỉnh: ${meta.code}<br>SVG path: province-${meta.code}`;$('fillColor').value=s.fill;$('strokeColor').value=s.stroke;$('strokeWidth').value=s.strokeWidth;$('strokeValue').textContent=Number(s.strokeWidth).toFixed(1);$('showSelectedLabel').checked=s.showLabel;$('hideSelected').checked=s.hidden}
+  function populate(q=''){q=q.trim().toLocaleLowerCase('vi');const old=state.selected;$('provinceSelect').innerHTML='';provinces.filter(p=>p.name.toLocaleLowerCase('vi').includes(q)).forEach(p=>{const o=document.createElement('option');o.value=p.code;o.textContent=`${p.code} — ${p.name}`;$('provinceSelect').appendChild(o)});if(old)$('provinceSelect').value=old}
+  function showTooltip(e,text){const r=$('canvas').getBoundingClientRect(),t=$('tooltip');t.textContent=text;t.style.left=(e.clientX-r.left)+'px';t.style.top=(e.clientY-r.top)+'px';t.style.opacity='1'}function hideTooltip(){$('tooltip').style.opacity='0'}
 
-  function defaultStyleFor(index, code){
-    const palette = ['#e8f0fb','#dce8f7','#e9eef6','#e2edf1','#e8eef8'];
-    return { fill: code==='01' ? '#fde3e3' : palette[index % palette.length], stroke:defaults.stroke, strokeWidth:defaults.strokeWidth, hidden:false, showLabel:true };
-  }
+  function updateTransform(){const t=state.transform;viewport.setAttribute('transform',`translate(${t.x} ${t.y}) scale(${t.k})`)}
+  function zoom(f,cx=700,cy=500){const t=state.transform,nk=Math.max(.55,Math.min(7,t.k*f)),wx=(cx-t.x)/t.k,wy=(cy-t.y)/t.k;t.x=cx-wx*nk;t.y=cy-wy*nk;t.k=nk;updateTransform()}
+  function fit(){state.transform={x:0,y:0,k:1};updateTransform()}
+  function download(text,name,type='image/svg+xml;charset=utf-8'){const u=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+  function exportCss(){return `<style>.province-label{font-family:'Roboto Condensed','Arial Narrow',Arial,sans-serif;font-weight:900;fill:#171717;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:#fff7e8;stroke-width:3px;stroke-linejoin:round}.target{font-size:14px}.normal{font-size:10.8px}.distance-label{font-family:Arial,sans-serif;font-size:8.8px;font-weight:700;fill:#333;stroke:#fff7e8;stroke-width:2.5px;paint-order:stroke;text-anchor:middle}.route{fill:none;stroke:#e11d48;stroke-width:2.2}.hidden-label{display:none}</style>`}
+  function exportAll(){const clone=svg.cloneNode(true);clone.querySelectorAll('.active').forEach(x=>x.classList.remove('active'));clone.setAttribute('xmlns',NS);clone.insertAdjacentHTML('afterbegin',exportCss());download(new XMLSerializer().serializeToString(clone),'ban-do-viet-nam-infographic.svg')}
+  function exportSelected(){if(!state.selected)return;const p=$(`province-${state.selected}`),meta=state.features.get(state.selected).meta,b=p.getBBox(),pad=15,l=state.labels.get(state.selected);const out=`<svg xmlns="${NS}" viewBox="${b.x-pad} ${b.y-pad} ${b.width+pad*2} ${b.height+pad*2}">${exportCss()}<rect x="${b.x-pad}" y="${b.y-pad}" width="${b.width+pad*2}" height="${b.height+pad*2}" fill="#fff8e9"/>${p.outerHTML.replace(' active','')}${l&&!l.classList.contains('hidden-label')?l.outerHTML:''}</svg>`;download(out,`${meta.code}-${meta.slug}.svg`)}
+  function resetSelected(){if(!state.selected)return;const i=provinces.findIndex(p=>p.code===state.selected);state.styles.set(state.selected,styleFor(i,state.selected));applyStyle(state.selected);syncEditor()}
+  function resetAll(){provinces.forEach((p,i)=>{state.styles.set(p.code,styleFor(i,p.code));applyStyle(p.code)});syncEditor()}
 
-  function drawProvince(meta, feature, index){
-    const d = geometryToPath(feature.geometry);
-    const style = defaultStyleFor(index, meta.code);
-    state.features.set(meta.code, {meta,feature,bbox:geometryBBox(feature.geometry)});
-    state.styles.set(meta.code, style);
-    state.originalPaths.set(meta.code, d);
+  async function loadAll(){let done=0,failed=[];const q=[...provinces];const workers=Array.from({length:6},async()=>{while(q.length){const meta=q.shift();try{const r=await fetch(meta.url,{cache:'force-cache'});if(!r.ok)throw Error(r.status);const gj=await r.json(),feature=gj.features&&gj.features[0];if(!feature)throw Error('empty');drawProvince(meta,feature,provinces.findIndex(p=>p.code===meta.code))}catch(e){failed.push(meta.name);console.error(meta.name,e)}done++;$('progress').style.width=(done/provinces.length*100)+'%';$('progressText').textContent=`${done} / ${provinces.length}`}});await Promise.all(workers);drawRoutes();drawHanoi();drawPickup();$('loading').style.display='none';$('loadBadge').textContent=failed.length?`Đã tải ${34-failed.length}/34 tỉnh`:'Đã tải đủ 34 tỉnh/thành';if(!failed.length)selectProvince('01');if(failed.length)alert('Không tải được: '+failed.join(', ')+'\nHãy tải lại trang.')}
 
-    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.id = `province-${meta.code}`;
-    path.dataset.code = meta.code;
-    path.dataset.name = meta.name;
-    path.setAttribute('d', d);
-    path.setAttribute('fill-rule','evenodd');
-    path.classList.add('province');
-    mapLayer.appendChild(path);
-    applyProvinceStyle(meta.code);
-
-    path.addEventListener('click', e => { e.stopPropagation(); selectProvince(meta.code); });
-    path.addEventListener('pointermove', e => showTooltip(e, meta.name));
-    path.addEventListener('pointerleave', hideTooltip);
-
-    const bbox = state.features.get(meta.code).bbox;
-    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
-    text.id = `label-${meta.code}`;
-    text.dataset.code = meta.code;
-    text.classList.add('province-label');
-    text.setAttribute('x', bbox.cx);
-    text.setAttribute('y', bbox.cy);
-    const fontSize = meta.name.length > 14 ? 9.5 : meta.name.length > 10 ? 10.5 : 11.5;
-    text.setAttribute('font-size', fontSize);
-    // tên quá dài thì chia 2 dòng
-    if (meta.name === 'TP. Hồ Chí Minh') {
-      const t1=document.createElementNS('http://www.w3.org/2000/svg','tspan'); t1.setAttribute('x',bbox.cx); t1.setAttribute('dy','-5'); t1.textContent='TP. Hồ Chí';
-      const t2=document.createElementNS('http://www.w3.org/2000/svg','tspan'); t2.setAttribute('x',bbox.cx); t2.setAttribute('dy','11'); t2.textContent='Minh'; text.append(t1,t2);
-    } else {
-      text.textContent = meta.name;
-    }
-    labelLayer.appendChild(text);
-    state.labels.set(meta.code,text);
-  }
-
-  function applyProvinceStyle(code){
-    const path = document.getElementById(`province-${code}`);
-    const st = state.styles.get(code);
-    if (!path || !st) return;
-    path.setAttribute('fill', st.fill);
-    path.setAttribute('stroke', st.stroke);
-    path.setAttribute('stroke-width', st.strokeWidth);
-    path.classList.toggle('hidden', !!st.hidden);
-    const label = state.labels.get(code);
-    if (label) label.classList.toggle('hidden', !$('showLabels').checked || !st.showLabel || st.hidden);
-  }
-
-  function drawHanoiMarker(){
-    markerLayer.innerHTML='';
-    if (!$('showHanoi').checked || !state.features.has('01')) return;
-    const b=state.features.get('01').bbox;
-    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx',b.cx); c.setAttribute('cy',b.cy); c.setAttribute('r',4.8); c.classList.add('hanoi-dot');
-    markerLayer.appendChild(c);
-  }
-
-  function selectProvince(code){
-    state.selected=code;
-    document.querySelectorAll('.province.selected').forEach(p=>p.classList.remove('selected'));
-    const path=document.getElementById(`province-${code}`);
-    if(path) path.classList.add('selected');
-    provinceSelect.value=code;
-    syncEditor();
-  }
-
-  function syncEditor(){
-    const code=state.selected;
-    if(!code || !state.features.has(code)){
-      $('selectedCard').innerHTML='Chưa chọn tỉnh.';
-      return;
-    }
-    const {meta}=state.features.get(code);
-    const st=state.styles.get(code);
-    $('selectedCard').innerHTML=`<b>${escapeHtml(meta.name)}</b><br>Mã tỉnh: ${meta.code}<br>SVG ID: province-${meta.code}`;
-    $('fillColor').value=st.fill;
-    $('strokeColor').value=st.stroke;
-    $('strokeWidth').value=st.strokeWidth;
-    $('strokeValue').textContent=Number(st.strokeWidth).toFixed(1);
-    $('showSelectedLabel').checked=st.showLabel;
-    $('hideSelected').checked=st.hidden;
-  }
-
-  function showTooltip(e,text){
-    tooltip.textContent=text;
-    tooltip.style.opacity='1';
-    const rect=$('canvasWrap').getBoundingClientRect();
-    tooltip.style.left=`${e.clientX-rect.left}px`;
-    tooltip.style.top=`${e.clientY-rect.top}px`;
-  }
-  function hideTooltip(){ tooltip.style.opacity='0'; }
-
-  function populateSelect(filter=''){
-    const q=filter.trim().toLocaleLowerCase('vi');
-    const current=state.selected;
-    provinceSelect.innerHTML='';
-    provinces.filter(p=>p.name.toLocaleLowerCase('vi').includes(q)).forEach(p=>{
-      const o=document.createElement('option'); o.value=p.code; o.textContent=`${p.code} — ${p.name}`; provinceSelect.appendChild(o);
-    });
-    if(current && [...provinceSelect.options].some(o=>o.value===current)) provinceSelect.value=current;
-  }
-
-  function updateTransform(){
-    const {x,y,k}=state.transform;
-    viewport.setAttribute('transform',`translate(${x} ${y}) scale(${k})`);
-  }
-  function zoomAt(factor,cx=360,cy=540){
-    const t=state.transform;
-    const nk=Math.min(8,Math.max(.55,t.k*factor));
-    const worldX=(cx-t.x)/t.k, worldY=(cy-t.y)/t.k;
-    t.x=cx-worldX*nk; t.y=cy-worldY*nk; t.k=nk; updateTransform();
-  }
-  function fitMap(){ state.transform={x:0,y:0,k:1}; updateTransform(); }
-
-  function downloadBlob(content, filename, type){
-    const blob=new Blob([content],{type});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-  }
-
-  function serializeSelected(){
-    const code=state.selected; if(!code) return;
-    const path=document.getElementById(`province-${code}`); if(!path) return;
-    const meta=state.features.get(code).meta;
-    const b=path.getBBox();
-    const pad=12;
-    const label=state.labels.get(code);
-    const bg=$('whiteBackground').checked ? `<rect x="${b.x-pad}" y="${b.y-pad}" width="${b.width+pad*2}" height="${b.height+pad*2}" fill="white"/>` : '';
-    const labelMarkup=(label && !label.classList.contains('hidden')) ? label.outerHTML : '';
-    const out=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x-pad} ${b.y-pad} ${b.width+pad*2} ${b.height+pad*2}">${bg}${path.outerHTML.replace(' selected','')}${labelMarkup}</svg>`;
-    downloadBlob(out,`${meta.code}-${slugify(meta.name)}.svg`,'image/svg+xml;charset=utf-8');
-  }
-
-  function serializeAll(){
-    const bg=$('whiteBackground').checked ? '<rect x="0" y="0" width="720" height="1080" fill="white"/>' : '';
-    const mapClone=mapLayer.cloneNode(true); mapClone.querySelectorAll('.selected').forEach(el=>el.classList.remove('selected'));
-    const out=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1080">${bg}${mapClone.outerHTML}${labelLayer.outerHTML}${markerLayer.outerHTML}</svg>`;
-    downloadBlob(out,'ban-do-viet-nam-34-tinh.svg','image/svg+xml;charset=utf-8');
-  }
-
-  function resetSelected(){
-    const code=state.selected; if(!code) return;
-    const idx=provinces.findIndex(p=>p.code===code);
-    state.styles.set(code,defaultStyleFor(idx,code));
-    const path=document.getElementById(`province-${code}`);
-    path.setAttribute('d',state.originalPaths.get(code));
-    applyProvinceStyle(code); syncEditor(); drawHanoiMarker();
-  }
-
-  function resetAll(){
-    provinces.forEach((p,idx)=>{
-      state.styles.set(p.code,defaultStyleFor(idx,p.code));
-      const path=document.getElementById(`province-${p.code}`);
-      if(path) path.setAttribute('d',state.originalPaths.get(p.code));
-      applyProvinceStyle(p.code);
-    });
-    syncEditor(); drawHanoiMarker();
-  }
-
-  async function loadAll(){
-    let done=0, failed=[];
-    // Giới hạn tải song song để tránh trình duyệt chặn quá nhiều kết nối.
-    const queue=[...provinces];
-    const workers=Array.from({length:6},async()=>{
-      while(queue.length){
-        const meta=queue.shift();
-        try{
-          const res=await fetch(meta.url,{cache:'force-cache'});
-          if(!res.ok) throw new Error(`HTTP ${res.status}`);
-          const gj=await res.json();
-          const feature=gj.features?.[0];
-          if(!feature) throw new Error('GeoJSON không có feature');
-          drawProvince(meta,feature,provinces.findIndex(p=>p.code===meta.code));
-        }catch(err){
-          console.error(meta.name,err); failed.push(meta.name);
-        }
-        done++;
-        $('progress').style.width=`${done/provinces.length*100}%`;
-        $('progressText').textContent=`${done} / ${provinces.length}`;
-      }
-    });
-    await Promise.all(workers);
-
-    drawHanoiMarker();
-    $('loading').style.display='none';
-    $('loadBadge').textContent=failed.length ? `Đã nạp ${34-failed.length}/34 tỉnh` : 'Đã nạp đủ 34 tỉnh/thành';
-    $('loadBadge').style.background=failed.length?'#fff3cd':'#eaf8ef';
-    if(failed.length){
-      alert('Không tải được: '+failed.join(', ')+'\nHãy kiểm tra kết nối Internet rồi tải lại trang.');
-    } else {
-      selectProvince('01');
-    }
-  }
-
-  // ===== SỰ KIỆN UI =====
-  populateSelect();
-  provinceSelect.addEventListener('change',()=>selectProvince(provinceSelect.value));
-  $('search').addEventListener('input',e=>populateSelect(e.target.value));
-
-  $('fillColor').addEventListener('input',e=>{if(!state.selected)return; state.styles.get(state.selected).fill=e.target.value; applyProvinceStyle(state.selected);});
-  $('strokeColor').addEventListener('input',e=>{if(!state.selected)return; state.styles.get(state.selected).stroke=e.target.value; applyProvinceStyle(state.selected);});
-  $('strokeWidth').addEventListener('input',e=>{if(!state.selected)return; const v=Number(e.target.value); state.styles.get(state.selected).strokeWidth=v; $('strokeValue').textContent=v.toFixed(1); applyProvinceStyle(state.selected);});
-  $('showSelectedLabel').addEventListener('change',e=>{if(!state.selected)return; state.styles.get(state.selected).showLabel=e.target.checked; applyProvinceStyle(state.selected);});
-  $('hideSelected').addEventListener('change',e=>{if(!state.selected)return; state.styles.get(state.selected).hidden=e.target.checked; applyProvinceStyle(state.selected);});
-  $('showLabels').addEventListener('change',()=>provinces.forEach(p=>applyProvinceStyle(p.code)));
-  $('showHanoi').addEventListener('change',drawHanoiMarker);
-  $('resetSelected').addEventListener('click',resetSelected);
-  $('resetAll').addEventListener('click',resetAll);
-  $('exportSelected').addEventListener('click',serializeSelected);
-  $('exportAll').addEventListener('click',serializeAll);
-
-  $('zoomIn').addEventListener('click',()=>zoomAt(1.25));
-  $('zoomOut').addEventListener('click',()=>zoomAt(.8));
-  $('fitMap').addEventListener('click',fitMap);
-
-  svg.addEventListener('wheel',e=>{
-    e.preventDefault();
-    const rect=svg.getBoundingClientRect();
-    const cx=(e.clientX-rect.left)/rect.width*720;
-    const cy=(e.clientY-rect.top)/rect.height*1080;
-    zoomAt(e.deltaY<0?1.13:.885,cx,cy);
-  },{passive:false});
-
-  svg.addEventListener('pointerdown',e=>{
-    if(e.button!==0) return;
-    state.dragging=true; svg.setPointerCapture(e.pointerId);
-    state.dragStart={clientX:e.clientX,clientY:e.clientY,x:state.transform.x,y:state.transform.y};
-  });
-  svg.addEventListener('pointermove',e=>{
-    if(!state.dragging) return;
-    const rect=svg.getBoundingClientRect();
-    const dx=(e.clientX-state.dragStart.clientX)/rect.width*720;
-    const dy=(e.clientY-state.dragStart.clientY)/rect.height*1080;
-    state.transform.x=state.dragStart.x+dx; state.transform.y=state.dragStart.y+dy; updateTransform();
-  });
-  svg.addEventListener('pointerup',e=>{state.dragging=false; try{svg.releasePointerCapture(e.pointerId)}catch{}});
-  svg.addEventListener('pointercancel',()=>state.dragging=false);
-  svg.addEventListener('dblclick',fitMap);
-
-  // Path editor
-  $('editPath').addEventListener('click',()=>{
-    if(!state.selected) return;
-    $('pathEditor').value=document.getElementById(`province-${state.selected}`).getAttribute('d');
-    $('pathModal').classList.add('open');
-  });
-  $('closeModal').addEventListener('click',()=>$('pathModal').classList.remove('open'));
-  $('pathModal').addEventListener('click',e=>{if(e.target===$('pathModal')) $('pathModal').classList.remove('open');});
-  $('applyPath').addEventListener('click',()=>{
-    if(!state.selected) return;
-    const v=$('pathEditor').value.trim(); if(!v) return;
-    document.getElementById(`province-${state.selected}`).setAttribute('d',v);
-    $('pathModal').classList.remove('open');
-  });
-  $('copyPath').addEventListener('click',async()=>{
-    try{await navigator.clipboard.writeText($('pathEditor').value); $('copyPath').textContent='Đã copy'; setTimeout(()=>$('copyPath').textContent='Copy path',1000);}catch{alert('Trình duyệt không cho phép copy tự động. Hãy Ctrl+A rồi Ctrl+C.');}
-  });
-
-  loadAll();
+  populate();$('provinceSelect').addEventListener('change',e=>selectProvince(e.target.value));$('search').addEventListener('input',e=>populate(e.target.value));
+  $('fillColor').addEventListener('input',e=>{if(!state.selected)return;state.styles.get(state.selected).fill=e.target.value;applyStyle(state.selected)});
+  $('strokeColor').addEventListener('input',e=>{if(!state.selected)return;state.styles.get(state.selected).stroke=e.target.value;applyStyle(state.selected)});
+  $('strokeWidth').addEventListener('input',e=>{if(!state.selected)return;const v=+e.target.value;state.styles.get(state.selected).strokeWidth=v;$('strokeValue').textContent=v.toFixed(1);applyStyle(state.selected)});
+  $('showSelectedLabel').addEventListener('change',e=>{if(!state.selected)return;state.styles.get(state.selected).showLabel=e.target.checked;applyStyle(state.selected)});
+  $('hideSelected').addEventListener('change',e=>{if(!state.selected)return;state.styles.get(state.selected).hidden=e.target.checked;applyStyle(state.selected)});
+  $('showLabels').addEventListener('change',()=>provinces.forEach(p=>applyStyle(p.code)));
+  $('showRoutes').addEventListener('change',drawRoutes);$('showPickup').addEventListener('change',drawPickup);$('exportAll').addEventListener('click',exportAll);$('exportSelected').addEventListener('click',exportSelected);$('resetSelected').addEventListener('click',resetSelected);$('resetAll').addEventListener('click',resetAll);
+  $('zoomIn').addEventListener('click',()=>zoom(1.22));$('zoomOut').addEventListener('click',()=>zoom(.82));$('fitMap').addEventListener('click',fit);
+  svg.addEventListener('wheel',e=>{e.preventDefault();const r=svg.getBoundingClientRect(),cx=(e.clientX-r.left)/r.width*1400,cy=(e.clientY-r.top)/r.height*1000;zoom(e.deltaY<0?1.12:.89,cx,cy)},{passive:false});
+  svg.addEventListener('pointerdown',e=>{if(e.button!==0)return;state.dragging=true;svg.setPointerCapture(e.pointerId);state.dragStart={cx:e.clientX,cy:e.clientY,x:state.transform.x,y:state.transform.y}});
+  svg.addEventListener('pointermove',e=>{if(!state.dragging)return;const r=svg.getBoundingClientRect();state.transform.x=state.dragStart.x+(e.clientX-state.dragStart.cx)/r.width*1400;state.transform.y=state.dragStart.y+(e.clientY-state.dragStart.cy)/r.height*1000;updateTransform()});
+  svg.addEventListener('pointerup',()=>state.dragging=false);svg.addEventListener('pointercancel',()=>state.dragging=false);svg.addEventListener('dblclick',fit);
+  drawPickup();loadAll();
 })();
 </script>
 </body>
