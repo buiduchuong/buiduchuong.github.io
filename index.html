@@ -71,6 +71,14 @@
       <input id="configFile" type="file" accept="application/json" hidden>
       <div class="tip">Mọi chỉnh sửa được tự lưu bằng localStorage trên trình duyệt này.</div>
     </div>
+
+    <div class="group">
+      <div class="group-title">Xuất ảnh / PDF</div>
+      <div class="row"><button id="exportPngMap" class="btn primary">PNG bản đồ</button><button id="exportPngFull" class="btn">PNG full web</button></div>
+      <div class="row"><button id="exportPdfMap" class="btn primary">PDF bản đồ</button><button id="exportPdfFull" class="btn">PDF full web</button></div>
+      <div id="exportStatus" class="mode-note">Sẵn sàng xuất file.</div>
+      <div class="tip">PNG/PDF bản đồ chỉ lấy khu vực bản đồ. Full web lấy toàn bộ giao diện dạng ảnh dài; PDF full web là một trang dài. Quá trình xuất chỉ đọc giao diện hiện tại, không thay đổi cấu hình hoặc localStorage.</div>
+    </div>
   </div>
 </aside>
 
@@ -104,7 +112,10 @@
   </div>
 </main>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="editor.js?v=4"></script>
 <script src="tour-route.js?v=1"></script>
+<script src="export-tools.js?v=1"></script>
 </body>
 </html>
