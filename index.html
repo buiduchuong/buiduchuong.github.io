@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bản đồ Việt Nam 34 tỉnh/thành - SVG Editor</title>
+  <style>
+    :root{
+      --bg:#f4f7fb;
+      --panel:#ffffff;
+      --text:#172033;
+      --muted:#6b7485;
+      --border:#dbe2ea;
+      --primary:#2563eb;
+      --primary-2:#1d4ed8;
+      --danger:#dc2626;
+      --shadow:0 12px 35px rgba(15,23,42,.09);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    button,input,select,textarea{font:inherit}
+    .app{height:100%;display:grid;grid-template-columns:330px 1fr;gap:14px;padding:14px}
+    .panel,.workspace{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)}
+    .panel{display:flex;flex-direction:column;overflow:hidden}
+    .panel-header{padding:18px 18px 12px;border-bottom:1px solid var(--border)}
+    .title{font-size:18px;font-weight:800;margin:0 0 6px}
+    .sub{font-size:12px;color:var(--muted);line-height:1.5}
+    .controls{padding:14px;display:grid;gap:12px;overflow:auto}
+    .group{padding:12px;border:1px solid var(--border);border-radius:12px;background:#fbfcfe}
+    .group-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;color:#475569}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .field{display:grid;gap:6px;margin-top:8px}
+    label{font-size:12px;color:#475569;font-weight:700}
+    input[type="text"],select,textarea{width:100%;border:1px solid #cfd7e3;border-radius:9px;padding:9px 10px;background:white;color:var(--text);outline:none}
+    input[type="text"]:focus,select:focus,textarea:focus{border-color:#93b4ff;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+    input[type="color"]{width:100%;height:38px;border:1px solid #cfd7e3;border-radius:9px;background:white;padding:3px;cursor:pointer}
+    input[type="range"]{width:100%}
+    .btn{border:1px solid #cfd7e3;background:white;color:#243047;border-radius:9px;padding:9px 10px;cursor:pointer;font-weight:700;font-size:12px;transition:.15s}
+    .btn:hover{transform:translateY(-1px);border-color:#9fb0c5}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:white}
+    .btn.primary:hover{background:var(--primary-2)}
+    .btn.danger{color:var(--danger)}
+    .check{display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;font-weight:700;margin-top:8px}
+    .check input{width:16px;height:16px}
+    .selected-card{padding:10px;border-radius:10px;background:#eef4ff;border:1px solid #cfe0ff;font-size:12px;line-height:1.55}
+    .selected-card b{font-size:14px}
+    .status{margin-top:8px;font-size:11px;color:var(--muted);line-height:1.45}
+    .workspace{position:relative;overflow:hidden;min-width:0}
+    .toolbar{height:58px;display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.94);position:relative;z-index:5}
+    .toolbar .spacer{flex:1}
+    .badge{font-size:11px;border-radius:999px;padding:6px 9px;background:#edf2f7;color:#526070;font-weight:700;white-space:nowrap}
+    .canvas-wrap{position:absolute;inset:58px 0 0;background:linear-gradient(135deg,#f8fafc,#edf3f9);overflow:hidden;touch-action:none}
+    #mapSvg{width:100%;height:100%;display:block;user-select:none}
+    .province{vector-effect:non-scaling-stroke;cursor:pointer;transition:filter .12s, opacity .12s}
+    .province:hover{filter:brightness(.92)}
+    .province.selected{filter:drop-shadow(0 0 4px rgba(37,99,235,.85));stroke:#1d4ed8 !important;stroke-width:2.3 !important}
+    .province.hidden{opacity:.06;pointer-events:none}
+    .province-label{font-weight:800;fill:#172033;paint-order:stroke;stroke:white;stroke-width:3px;stroke-linejoin:round;pointer-events:none;text-anchor:middle;dominant-baseline:middle}
+    .province-label.hidden{display:none}
+    .hanoi-dot{fill:#ef4444;stroke:white;stroke-width:2;vector-effect:non-scaling-stroke;pointer-events:none}
+    .tooltip{position:absolute;z-index:20;pointer-events:none;background:#0f172a;color:white;padding:7px 9px;border-radius:8px;font-size:12px;font-weight:700;box-shadow:0 8px 18px rgba(15,23,42,.2);opacity:0;transform:translate(10px,10px)}
+    .loading{position:absolute;inset:0;display:grid;place-items:center;z-index:10;background:rgba(248,250,252,.92)}
+    .loading-card{width:min(430px,90%);background:white;border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center;box-shadow:var(--shadow)}
+    .bar{height:8px;background:#e8edf4;border-radius:999px;overflow:hidden;margin:12px 0 8px}
+    .bar > div{height:100%;width:0;background:#2563eb;transition:width .2s}
+    .modal{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:99;display:none;align-items:center;justify-content:center;padding:20px}
+    .modal.open{display:flex}
+    .modal-card{width:min(900px,95vw);height:min(720px,90vh);background:white;border-radius:16px;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.25)}
+    .modal-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border)}
+    .modal-head b{flex:1}
+    .modal-body{padding:14px;display:flex;flex-direction:column;gap:10px;min-height:0;flex:1}
+    #pathEditor{flex:1;resize:none;font-family:Consolas,monospace;font-size:11px;line-height:1.4}
+    .hint{font-size:11px;color:var(--muted);line-height:1.45}
+    @media (max-width:850px){
+      .app{grid-template-columns:1fr;padding:8px;height:auto;min-height:100%}
+      .panel{max-height:none}
+      .workspace{height:72vh;min-height:600px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel">
+    <div class="panel-header">
+      <h1 class="title">Bản đồ Việt Nam SVG</h1>
+      <div class="sub">34 tỉnh/thành • mỗi tỉnh là một SVG path riêng • click tỉnh để chỉnh màu, viền, tên hoặc xuất SVG riêng.</div>
+    </div>
+    <div class="controls">
+      <div class="group">
+        <div class="group-title">Chọn tỉnh / thành</div>
+        <div class="field">
+          <input id="search" type="text" placeholder="Tìm: Hà Nội, Hải Phòng..." />
+          <select id="provinceSelect" size="7"></select>
+        </div>
+        <div id="selectedCard" class="selected-card" style="margin-top:10px">Chưa chọn tỉnh.</div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Chỉnh tỉnh đang chọn</div>
+        <div class="row">
+          <div class="field" style="margin:0"><label>Màu nền</label><input id="fillColor" type="color" value="#dce8f7"></div>
+          <div class="field" style="margin:0"><label>Màu viền</label><input id="strokeColor" type="color" value="#5f6f82"></div>
+        </div>
+        <div class="field"><label>Độ dày viền: <span id="strokeValue">0.9</span> px</label><input id="strokeWidth" type="range" min="0.2" max="4" step="0.1" value="0.9"></div>
+        <label class="check"><input id="showSelectedLabel" type="checkbox" checked> Hiện tên tỉnh đang chọn</label>
+        <label class="check"><input id="hideSelected" type="checkbox"> Ẩn tỉnh đang chọn</label>
+        <div class="row">
+          <button id="exportSelected" class="btn primary">Xuất SVG tỉnh</button>
+          <button id="editPath" class="btn">Sửa path SVG</button>
+        </div>
+        <button id="resetSelected" class="btn" style="width:100%;margin-top:8px">Khôi phục tỉnh này</button>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Toàn bản đồ</div>
+        <label class="check"><input id="showLabels" type="checkbox" checked> Hiện tên 34 tỉnh/thành</label>
+        <label class="check"><input id="showHanoi" type="checkbox" checked> Đánh dấu Hà Nội</label>
+        <label class="check"><input id="whiteBackground" type="checkbox" checked> Nền trắng khi xuất SVG</label>
+        <div class="row">
+          <button id="exportAll" class="btn primary">Xuất toàn bản đồ</button>
+          <button id="resetAll" class="btn">Khôi phục tất cả</button>
+        </div>
+        <div class="status">Mẹo: lăn chuột để zoom, giữ chuột và kéo để di chuyển bản đồ. Double-click để trở về vị trí mặc định.</div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">Nguồn dữ liệu</div>
+        <div class="hint">Ranh giới cấp tỉnh được nạp từ bộ GeoJSON 34 tỉnh/thành của dự án Vietnamese Provinces Database. File chỉ hiển thị cấp tỉnh, không tải xã/phường.</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="workspace">
+    <div class="toolbar">
+      <button id="zoomIn" class="btn">＋ Zoom</button>
+      <button id="zoomOut" class="btn">－ Zoom</button>
+      <button id="fitMap" class="btn">Vừa màn hình</button>
+      <div class="spacer"></div>
+      <span id="loadBadge" class="badge">Đang nạp dữ liệu…</span>
+    </div>
+    <div id="canvasWrap" class="canvas-wrap">
+      <svg id="mapSvg" viewBox="0 0 720 1080" xmlns="http://www.w3.org/2000/svg" aria-label="Bản đồ Việt Nam 34 tỉnh thành">
+        <rect x="0" y="0" width="720" height="1080" fill="#fff" />
+        <g id="viewport">
+          <g id="mapLayer"></g>
+          <g id="labelLayer"></g>
+          <g id="markerLayer"></g>
+        </g>
+      </svg>
+      <div id="tooltip" class="tooltip"></div>
+      <div id="loading" class="loading">
+        <div class="loading-card">
+          <b>Đang tải ranh giới 34 tỉnh/thành…</b>
+          <div class="bar"><div id="progress"></div></div>
+          <div id="progressText" class="sub">0 / 34</div>
+          <div class="hint" style="margin-top:8px">File cần kết nối Internet để lấy dữ liệu GeoJSON từ GitHub khi mở.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="pathModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-head"><b>Sửa dữ liệu SVG path của tỉnh</b><button id="closeModal" class="btn">Đóng</button></div>
+    <div class="modal-body">
+      <div class="hint">Bạn có thể sửa trực tiếp thuộc tính <code>d</code>. Nếu path sai cú pháp, hãy bấm “Khôi phục tỉnh này”.</div>
+      <textarea id="pathEditor" spellcheck="false"></textarea>
+      <div class="row" style="grid-template-columns:1fr 1fr;max-width:360px">
+        <button id="applyPath" class="btn primary">Áp dụng path</button>
+        <button id="copyPath" class="btn">Copy path</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ===== CẤU HÌNH DỮ LIỆU 34 TỈNH/THÀNH =====
+  const BASE = 'https://raw.githubusercontent.com/thanglequoc/vietnamese-provinces-database/master/json/geojson';
+  const provinces = [
+    ['01','ha_noi','Hà Nội'],['04','cao_bang','Cao Bằng'],['08','tuyen_quang','Tuyên Quang'],
+    ['11','dien_bien','Điện Biên'],['12','lai_chau','Lai Châu'],['14','son_la','Sơn La'],
+    ['15','lao_cai','Lào Cai'],['19','thai_nguyen','Thái Nguyên'],['20','lang_son','Lạng Sơn'],
+    ['22','quang_ninh','Quảng Ninh'],['24','bac_ninh','Bắc Ninh'],['25','phu_tho','Phú Thọ'],
+    ['31','hai_phong','Hải Phòng'],['33','hung_yen','Hưng Yên'],['37','ninh_binh','Ninh Bình'],
+    ['38','thanh_hoa','Thanh Hóa'],['40','nghe_an','Nghệ An'],['42','ha_tinh','Hà Tĩnh'],
+    ['44','quang_tri','Quảng Trị'],['46','hue','Huế'],['48','da_nang','Đà Nẵng'],
+    ['51','quang_ngai','Quảng Ngãi'],['52','gia_lai','Gia Lai'],['56','khanh_hoa','Khánh Hòa'],
+    ['66','dak_lak','Đắk Lắk'],['68','lam_dong','Lâm Đồng'],['75','dong_nai','Đồng Nai'],
+    ['79','ho_chi_minh','TP. Hồ Chí Minh'],['80','tay_ninh','Tây Ninh'],['82','dong_thap','Đồng Tháp'],
+    ['86','vinh_long','Vĩnh Long'],['91','an_giang','An Giang'],['92','can_tho','Cần Thơ'],['96','ca_mau','Cà Mau']
+  ].map(([code,slug,name]) => ({code,slug,name,url:`${BASE}/${code}_${slug}/${code}_${slug}.geojson`}));
+
+  // Khung bản đồ đất liền Việt Nam. Các phần rất xa ngoài Biển Đông sẽ không làm méo khung chính.
+  const GEO_BOUNDS = { minLon:101.8, maxLon:110.3, minLat:7.8, maxLat:23.8 };
+  const PLOT = { x:115, y:35, w:490, h:1000 };
+  const defaults = { fill:'#dce8f7', stroke:'#5f6f82', strokeWidth:0.9 };
+  const state = {
+    selected:null,
+    features:new Map(),
+    styles:new Map(),
+    originalPaths:new Map(),
+    labels:new Map(),
+    transform:{x:0,y:0,k:1},
+    dragging:false,
+    dragStart:null
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const svg = $('mapSvg');
+  const viewport = $('viewport');
+  const mapLayer = $('mapLayer');
+  const labelLayer = $('labelLayer');
+  const markerLayer = $('markerLayer');
+  const tooltip = $('tooltip');
+  const provinceSelect = $('provinceSelect');
+
+  const escapeHtml = (s) => s.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c]));
+  const slugify = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+
+  function project(coord){
+    const [lon,lat] = coord;
+    const x = PLOT.x + (lon - GEO_BOUNDS.minLon) / (GEO_BOUNDS.maxLon - GEO_BOUNDS.minLon) * PLOT.w;
+    const y = PLOT.y + (GEO_BOUNDS.maxLat - lat) / (GEO_BOUNDS.maxLat - GEO_BOUNDS.minLat) * PLOT.h;
+    return [x,y];
+  }
+
+  function ringToPath(ring){
+    if (!ring || ring.length < 3) return '';
+    const pts = ring.map(project);
+    return `M${pts.map((p,i)=>`${i?'L':''}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join('')}Z`;
+  }
+
+  function geometryToPath(geometry){
+    if (!geometry) return '';
+    if (geometry.type === 'Polygon') return geometry.coordinates.map(ringToPath).join('');
+    if (geometry.type === 'MultiPolygon') return geometry.coordinates.flatMap(poly => poly.map(ringToPath)).join('');
+    return '';
+  }
+
+  function walkCoords(coords, cb){
+    if (!Array.isArray(coords)) return;
+    if (typeof coords[0] === 'number' && typeof coords[1] === 'number') { cb(coords); return; }
+    coords.forEach(c => walkCoords(c, cb));
+  }
+
+  function geometryBBox(geometry){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    walkCoords(geometry.coordinates, coord => {
+      const [x,y]=project(coord);
+      if (x<minX) minX=x; if (x>maxX) maxX=x; if (y<minY) minY=y; if (y>maxY) maxY=y;
+    });
+    return {minX,minY,maxX,maxY,cx:(minX+maxX)/2,cy:(minY+maxY)/2,w:maxX-minX,h:maxY-minY};
+  }
+
+  function defaultStyleFor(index, code){
+    const palette = ['#e8f0fb','#dce8f7','#e9eef6','#e2edf1','#e8eef8'];
+    return { fill: code==='01' ? '#fde3e3' : palette[index % palette.length], stroke:defaults.stroke, strokeWidth:defaults.strokeWidth, hidden:false, showLabel:true };
+  }
+
+  function drawProvince(meta, feature, index){
+    const d = geometryToPath(feature.geometry);
+    const style = defaultStyleFor(index, meta.code);
+    state.features.set(meta.code, {meta,feature,bbox:geometryBBox(feature.geometry)});
+    state.styles.set(meta.code, style);
+    state.originalPaths.set(meta.code, d);
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.id = `province-${meta.code}`;
+    path.dataset.code = meta.code;
+    path.dataset.name = meta.name;
+    path.setAttribute('d', d);
+    path.setAttribute('fill-rule','evenodd');
+    path.classList.add('province');
+    mapLayer.appendChild(path);
+    applyProvinceStyle(meta.code);
+
+    path.addEventListener('click', e => { e.stopPropagation(); selectProvince(meta.code); });
+    path.addEventListener('pointermove', e => showTooltip(e, meta.name));
+    path.addEventListener('pointerleave', hideTooltip);
+
+    const bbox = state.features.get(meta.code).bbox;
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.id = `label-${meta.code}`;
+    text.dataset.code = meta.code;
+    text.classList.add('province-label');
+    text.setAttribute('x', bbox.cx);
+    text.setAttribute('y', bbox.cy);
+    const fontSize = meta.name.length > 14 ? 9.5 : meta.name.length > 10 ? 10.5 : 11.5;
+    text.setAttribute('font-size', fontSize);
+    // tên quá dài thì chia 2 dòng
+    if (meta.name === 'TP. Hồ Chí Minh') {
+      const t1=document.createElementNS('http://www.w3.org/2000/svg','tspan'); t1.setAttribute('x',bbox.cx); t1.setAttribute('dy','-5'); t1.textContent='TP. Hồ Chí';
+      const t2=document.createElementNS('http://www.w3.org/2000/svg','tspan'); t2.setAttribute('x',bbox.cx); t2.setAttribute('dy','11'); t2.textContent='Minh'; text.append(t1,t2);
+    } else {
+      text.textContent = meta.name;
+    }
+    labelLayer.appendChild(text);
+    state.labels.set(meta.code,text);
+  }
+
+  function applyProvinceStyle(code){
+    const path = document.getElementById(`province-${code}`);
+    const st = state.styles.get(code);
+    if (!path || !st) return;
+    path.setAttribute('fill', st.fill);
+    path.setAttribute('stroke', st.stroke);
+    path.setAttribute('stroke-width', st.strokeWidth);
+    path.classList.toggle('hidden', !!st.hidden);
+    const label = state.labels.get(code);
+    if (label) label.classList.toggle('hidden', !$('showLabels').checked || !st.showLabel || st.hidden);
+  }
+
+  function drawHanoiMarker(){
+    markerLayer.innerHTML='';
+    if (!$('showHanoi').checked || !state.features.has('01')) return;
+    const b=state.features.get('01').bbox;
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',b.cx); c.setAttribute('cy',b.cy); c.setAttribute('r',4.8); c.classList.add('hanoi-dot');
+    markerLayer.appendChild(c);
+  }
+
+  function selectProvince(code){
+    state.selected=code;
+    document.querySelectorAll('.province.selected').forEach(p=>p.classList.remove('selected'));
+    const path=document.getElementById(`province-${code}`);
+    if(path) path.classList.add('selected');
+    provinceSelect.value=code;
+    syncEditor();
+  }
+
+  function syncEditor(){
+    const code=state.selected;
+    if(!code || !state.features.has(code)){
+      $('selectedCard').innerHTML='Chưa chọn tỉnh.';
+      return;
+    }
+    const {meta}=state.features.get(code);
+    const st=state.styles.get(code);
+    $('selectedCard').innerHTML=`<b>${escapeHtml(meta.name)}</b><br>Mã tỉnh: ${meta.code}<br>SVG ID: province-${meta.code}`;
+    $('fillColor').value=st.fill;
+    $('strokeColor').value=st.stroke;
+    $('strokeWidth').value=st.strokeWidth;
+    $('strokeValue').textContent=Number(st.strokeWidth).toFixed(1);
+    $('showSelectedLabel').checked=st.showLabel;
+    $('hideSelected').checked=st.hidden;
+  }
+
+  function showTooltip(e,text){
+    tooltip.textContent=text;
+    tooltip.style.opacity='1';
+    const rect=$('canvasWrap').getBoundingClientRect();
+    tooltip.style.left=`${e.clientX-rect.left}px`;
+    tooltip.style.top=`${e.clientY-rect.top}px`;
+  }
+  function hideTooltip(){ tooltip.style.opacity='0'; }
+
+  function populateSelect(filter=''){
+    const q=filter.trim().toLocaleLowerCase('vi');
+    const current=state.selected;
+    provinceSelect.innerHTML='';
+    provinces.filter(p=>p.name.toLocaleLowerCase('vi').includes(q)).forEach(p=>{
+      const o=document.createElement('option'); o.value=p.code; o.textContent=`${p.code} — ${p.name}`; provinceSelect.appendChild(o);
+    });
+    if(current && [...provinceSelect.options].some(o=>o.value===current)) provinceSelect.value=current;
+  }
+
+  function updateTransform(){
+    const {x,y,k}=state.transform;
+    viewport.setAttribute('transform',`translate(${x} ${y}) scale(${k})`);
+  }
+  function zoomAt(factor,cx=360,cy=540){
+    const t=state.transform;
+    const nk=Math.min(8,Math.max(.55,t.k*factor));
+    const worldX=(cx-t.x)/t.k, worldY=(cy-t.y)/t.k;
+    t.x=cx-worldX*nk; t.y=cy-worldY*nk; t.k=nk; updateTransform();
+  }
+  function fitMap(){ state.transform={x:0,y:0,k:1}; updateTransform(); }
+
+  function downloadBlob(content, filename, type){
+    const blob=new Blob([content],{type});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+
+  function serializeSelected(){
+    const code=state.selected; if(!code) return;
+    const path=document.getElementById(`province-${code}`); if(!path) return;
+    const meta=state.features.get(code).meta;
+    const b=path.getBBox();
+    const pad=12;
+    const label=state.labels.get(code);
+    const bg=$('whiteBackground').checked ? `<rect x="${b.x-pad}" y="${b.y-pad}" width="${b.width+pad*2}" height="${b.height+pad*2}" fill="white"/>` : '';
+    const labelMarkup=(label && !label.classList.contains('hidden')) ? label.outerHTML : '';
+    const out=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b.x-pad} ${b.y-pad} ${b.width+pad*2} ${b.height+pad*2}">${bg}${path.outerHTML.replace(' selected','')}${labelMarkup}</svg>`;
+    downloadBlob(out,`${meta.code}-${slugify(meta.name)}.svg`,'image/svg+xml;charset=utf-8');
+  }
+
+  function serializeAll(){
+    const bg=$('whiteBackground').checked ? '<rect x="0" y="0" width="720" height="1080" fill="white"/>' : '';
+    const mapClone=mapLayer.cloneNode(true); mapClone.querySelectorAll('.selected').forEach(el=>el.classList.remove('selected'));
+    const out=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1080">${bg}${mapClone.outerHTML}${labelLayer.outerHTML}${markerLayer.outerHTML}</svg>`;
+    downloadBlob(out,'ban-do-viet-nam-34-tinh.svg','image/svg+xml;charset=utf-8');
+  }
+
+  function resetSelected(){
+    const code=state.selected; if(!code) return;
+    const idx=provinces.findIndex(p=>p.code===code);
+    state.styles.set(code,defaultStyleFor(idx,code));
+    const path=document.getElementById(`province-${code}`);
+    path.setAttribute('d',state.originalPaths.get(code));
+    applyProvinceStyle(code); syncEditor(); drawHanoiMarker();
+  }
+
+  function resetAll(){
+    provinces.forEach((p,idx)=>{
+      state.styles.set(p.code,defaultStyleFor(idx,p.code));
+      const path=document.getElementById(`province-${p.code}`);
+      if(path) path.setAttribute('d',state.originalPaths.get(p.code));
+      applyProvinceStyle(p.code);
+    });
+    syncEditor(); drawHanoiMarker();
+  }
+
+  async function loadAll(){
+    let done=0, failed=[];
+    // Giới hạn tải song song để tránh trình duyệt chặn quá nhiều kết nối.
+    const queue=[...provinces];
+    const workers=Array.from({length:6},async()=>{
+      while(queue.length){
+        const meta=queue.shift();
+        try{
+          const res=await fetch(meta.url,{cache:'force-cache'});
+          if(!res.ok) throw new Error(`HTTP ${res.status}`);
+          const gj=await res.json();
+          const feature=gj.features?.[0];
+          if(!feature) throw new Error('GeoJSON không có feature');
+          drawProvince(meta,feature,provinces.findIndex(p=>p.code===meta.code));
+        }catch(err){
+          console.error(meta.name,err); failed.push(meta.name);
+        }
+        done++;
+        $('progress').style.width=`${done/provinces.length*100}%`;
+        $('progressText').textContent=`${done} / ${provinces.length}`;
+      }
+    });
+    await Promise.all(workers);
+
+    drawHanoiMarker();
+    $('loading').style.display='none';
+    $('loadBadge').textContent=failed.length ? `Đã nạp ${34-failed.length}/34 tỉnh` : 'Đã nạp đủ 34 tỉnh/thành';
+    $('loadBadge').style.background=failed.length?'#fff3cd':'#eaf8ef';
+    if(failed.length){
+      alert('Không tải được: '+failed.join(', ')+'\nHãy kiểm tra kết nối Internet rồi tải lại trang.');
+    } else {
+      selectProvince('01');
+    }
+  }
+
+  // ===== SỰ KIỆN UI =====
+  populateSelect();
+  provinceSelect.addEventListener('change',()=>selectProvince(provinceSelect.value));
+  $('search').addEventListener('input',e=>populateSelect(e.target.value));
+
+  $('fillColor').addEventListener('input',e=>{if(!state.selected)return; state.styles.get(state.selected).fill=e.target.value; applyProvinceStyle(state.selected);});
+  $('strokeColor').addEventListener('input',e=>{if(!state.selected)return; state.styles.get(state.selected).stroke=e.target.value; applyProvinceStyle(state.selected);});
+  $('strokeWidth').addEventListener('input',e=>{if(!state.selected)return; const v=Number(e.target.value); state.styles.get(state.selected).strokeWidth=v; $('strokeValue').textContent=v.toFixed(1); applyProvinceStyle(state.selected);});
+  $('showSelectedLabel').addEventListener('change',e=>{if(!state.selected)return; state.styles.get(state.selected).showLabel=e.target.checked; applyProvinceStyle(state.selected);});
+  $('hideSelected').addEventListener('change',e=>{if(!state.selected)return; state.styles.get(state.selected).hidden=e.target.checked; applyProvinceStyle(state.selected);});
+  $('showLabels').addEventListener('change',()=>provinces.forEach(p=>applyProvinceStyle(p.code)));
+  $('showHanoi').addEventListener('change',drawHanoiMarker);
+  $('resetSelected').addEventListener('click',resetSelected);
+  $('resetAll').addEventListener('click',resetAll);
+  $('exportSelected').addEventListener('click',serializeSelected);
+  $('exportAll').addEventListener('click',serializeAll);
+
+  $('zoomIn').addEventListener('click',()=>zoomAt(1.25));
+  $('zoomOut').addEventListener('click',()=>zoomAt(.8));
+  $('fitMap').addEventListener('click',fitMap);
+
+  svg.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const rect=svg.getBoundingClientRect();
+    const cx=(e.clientX-rect.left)/rect.width*720;
+    const cy=(e.clientY-rect.top)/rect.height*1080;
+    zoomAt(e.deltaY<0?1.13:.885,cx,cy);
+  },{passive:false});
+
+  svg.addEventListener('pointerdown',e=>{
+    if(e.button!==0) return;
+    state.dragging=true; svg.setPointerCapture(e.pointerId);
+    state.dragStart={clientX:e.clientX,clientY:e.clientY,x:state.transform.x,y:state.transform.y};
+  });
+  svg.addEventListener('pointermove',e=>{
+    if(!state.dragging) return;
+    const rect=svg.getBoundingClientRect();
+    const dx=(e.clientX-state.dragStart.clientX)/rect.width*720;
+    const dy=(e.clientY-state.dragStart.clientY)/rect.height*1080;
+    state.transform.x=state.dragStart.x+dx; state.transform.y=state.dragStart.y+dy; updateTransform();
+  });
+  svg.addEventListener('pointerup',e=>{state.dragging=false; try{svg.releasePointerCapture(e.pointerId)}catch{}});
+  svg.addEventListener('pointercancel',()=>state.dragging=false);
+  svg.addEventListener('dblclick',fitMap);
+
+  // Path editor
+  $('editPath').addEventListener('click',()=>{
+    if(!state.selected) return;
+    $('pathEditor').value=document.getElementById(`province-${state.selected}`).getAttribute('d');
+    $('pathModal').classList.add('open');
+  });
+  $('closeModal').addEventListener('click',()=>$('pathModal').classList.remove('open'));
+  $('pathModal').addEventListener('click',e=>{if(e.target===$('pathModal')) $('pathModal').classList.remove('open');});
+  $('applyPath').addEventListener('click',()=>{
+    if(!state.selected) return;
+    const v=$('pathEditor').value.trim(); if(!v) return;
+    document.getElementById(`province-${state.selected}`).setAttribute('d',v);
+    $('pathModal').classList.remove('open');
+  });
+  $('copyPath').addEventListener('click',async()=>{
+    try{await navigator.clipboard.writeText($('pathEditor').value); $('copyPath').textContent='Đã copy'; setTimeout(()=>$('copyPath').textContent='Copy path',1000);}catch{alert('Trình duyệt không cho phép copy tự động. Hãy Ctrl+A rồi Ctrl+C.');}
+  });
+
+  loadAll();
+})();
+</script>
+</body>
+</html>
