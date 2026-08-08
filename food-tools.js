@@ -17,18 +17,18 @@ function scheduleFlush(){clearTimeout(state.saveTimer);state.saveTimer=setTimeou
 function selectedItem(){return state.items.find(f=>f.id===state.selected)||null}
 function worldFromClient(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=viewport.getScreenCTM();if(!m)return[700,500];const p=pt.matrixTransform(m.inverse());return[p.x,p.y]}
 function visibleCenter(){const r=canvas?.getBoundingClientRect();if(!r)return[700,500];return worldFromClient({clientX:r.left+r.width/2,clientY:r.top+r.height/2})}
-function line(g,a){const n=el('line',{...a,class:'food-icon-line'});g.appendChild(n);return n}
-function path(g,a){const n=el('path',{...a,class:'food-icon-line'});g.appendChild(n);return n}
+function line(g,a){const n=el('line',{...a,fill:'none','stroke-linecap':'round','stroke-linejoin':'round',class:'food-icon-line'});g.appendChild(n);return n}
+function path(g,a){const n=el('path',{...a,fill:'none','stroke-linecap':'round','stroke-linejoin':'round',class:'food-icon-line'});g.appendChild(n);return n}
 function drawRestaurant(g,s,c,w){
   const x=-s*.15;
   line(g,{x1:x,y1:-s*.26,x2:x,y2:s*.24,stroke:c,'stroke-width':w});
   [-.22,-.15,-.08].forEach(v=>line(g,{x1:s*v,y1:-s*.28,x2:s*v,y2:-s*.12,stroke:c,'stroke-width':w*.78}));
   line(g,{x1:-s*.22,y1:-s*.12,x2:-s*.08,y2:-s*.12,stroke:c,'stroke-width':w*.8});
-  const spoon=el('ellipse',{cx:s*.15,cy:-s*.16,rx:s*.075,ry:s*.115,fill:'none',stroke:c,'stroke-width':w,class:'food-icon-line'});g.appendChild(spoon);
+  const spoon=el('ellipse',{cx:s*.15,cy:-s*.16,rx:s*.075,ry:s*.115,fill:'none',stroke:c,'stroke-width':w,'stroke-linecap':'round','stroke-linejoin':'round',class:'food-icon-line'});g.appendChild(spoon);
   line(g,{x1:s*.15,y1:-s*.045,x2:s*.15,y2:s*.24,stroke:c,'stroke-width':w});
 }
 function drawCoffee(g,s,c,w){
-  const cup=el('rect',{x:-s*.23,y:-s*.12,width:s*.38,height:s*.25,rx:s*.04,fill:'none',stroke:c,'stroke-width':w,class:'food-icon-line'});g.appendChild(cup);
+  const cup=el('rect',{x:-s*.23,y:-s*.12,width:s*.38,height:s*.25,rx:s*.04,fill:'none',stroke:c,'stroke-width':w,'stroke-linecap':'round','stroke-linejoin':'round',class:'food-icon-line'});g.appendChild(cup);
   path(g,{d:`M${s*.15},${-s*.07} C${s*.31},${-s*.08} ${s*.31},${s*.1} ${s*.15},${s*.08}`,stroke:c,'stroke-width':w});
   line(g,{x1:-s*.27,y1:s*.19,x2:s*.28,y2:s*.19,stroke:c,'stroke-width':w*.85});
   [-.12,.02,.16].forEach(x=>path(g,{d:`M${s*x},${-s*.2} C${s*(x-.04)},${-s*.28} ${s*(x+.05)},${-s*.32} ${s*x},${-s*.39}`,stroke:c,'stroke-width':w*.75}));
@@ -42,11 +42,11 @@ function drawDrink(g,s,c,w){
 function drawItem(f){
   const g=el('g',{class:'food-marker'+(f.id===state.selected?' selected':'')+(state.dragEnabled?'':' drag-disabled'),'data-id':f.id,transform:`translate(${f.x} ${f.y})`});
   const s=f.size,r=s*.52,labelY=s*.82,hitW=Math.max(s*2.6,120),hitH=s*(f.showLabel&&f.label?1.35:1.1);
-  g.appendChild(el('rect',{x:-hitW/2,y:-s*.62,width:hitW,height:hitH,class:'food-hit'}));
-  g.appendChild(el('circle',{cx:0,cy:0,r,class:'food-badge',fill:f.bgColor}));
+  g.appendChild(el('rect',{x:-hitW/2,y:-s*.62,width:hitW,height:hitH,class:'food-hit',fill:'transparent','pointer-events':'all'}));
+  g.appendChild(el('circle',{cx:0,cy:0,r,class:'food-badge',fill:f.bgColor,stroke:'#fffdf8','stroke-width':'2.2'}));
   const w=Math.max(1.4,s*.055);
   if(f.type==='coffee')drawCoffee(g,s,f.iconColor,w);else if(f.type==='drink')drawDrink(g,s,f.iconColor,w);else drawRestaurant(g,s,f.iconColor,w);
-  if(f.showLabel&&f.label){const t=el('text',{x:0,y:labelY,class:'food-label','font-size':clamp(s*.29,9,28),fill:f.textColor});t.textContent=f.label;g.appendChild(t)}
+  if(f.showLabel&&f.label){const t=el('text',{x:0,y:labelY,class:'food-label','font-family':'Roboto,Arial,sans-serif','text-anchor':'middle','font-weight':'700','paint-order':'stroke',stroke:'#fffdf8','stroke-width':'3','stroke-linejoin':'round','font-size':clamp(s*.29,9,28),fill:f.textColor});t.textContent=f.label;g.appendChild(t)}
   g.addEventListener('pointerdown',startDrag);g.addEventListener('click',e=>{e.stopPropagation();select(f.id)});return g
 }
 function render(){layer.innerHTML='';layer.style.display=state.show?'':'none';if(state.show)state.items.forEach(f=>layer.appendChild(drawItem(f)));syncList();syncEditor()}
