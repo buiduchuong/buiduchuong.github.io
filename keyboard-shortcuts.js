@@ -5,6 +5,7 @@ window.__VN_OBJECT_SHORTCUTS=true;
 
 const TYPES={
   flag:{selector:'.flag-marker[data-id]',selected:'.flag-marker.selected[data-id]',duplicate:'duplicateFlag',name:'cờ'},
+  shapeFlag:{selector:'.flag-shape-marker[data-id]',selected:'.flag-shape-marker.selected[data-id]',duplicate:'duplicateShapeFlag',name:'shape cờ'},
   icon:{selector:'.food-marker[data-id]',selected:'.food-marker.selected[data-id]',duplicate:'duplicateFoodItem',name:'icon'},
   line:{selector:'.editor-line[data-id]',selected:'.editor-line.selected[data-id]',duplicate:'duplicateLine',name:'đường/mũi tên'}
 };
@@ -29,7 +30,7 @@ function findFromTarget(target){
 }
 function currentObject(){
   if(active&&nodeFor(active.kind,active.id))return active;
-  for(const kind of ['flag','icon','line']){
+  for(const kind of ['shapeFlag','flag','icon','line']){
     const n=selectedFor(kind);
     if(n)return{kind,id:n.dataset.id};
   }
@@ -40,6 +41,10 @@ function friendlyName(obj){
   if(obj.kind==='flag'){
     const opt=document.querySelector('#flagSelect option:checked');
     return opt?.textContent?.trim()||'cờ';
+  }
+  if(obj.kind==='shapeFlag'){
+    const opt=document.querySelector('#shapeFlagSelect option:checked');
+    return opt?.textContent?.replace(/^\d+\.\s*/,'')?.trim()||'shape cờ';
   }
   if(obj.kind==='icon'){
     const opt=document.querySelector('#foodSelect option:checked');
