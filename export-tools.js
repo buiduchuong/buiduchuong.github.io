@@ -29,6 +29,7 @@ function cleanClone(doc){
   doc.querySelectorAll('.editor-line.selected').forEach(n=>n.classList.remove('selected'));
   doc.querySelectorAll('.province.active').forEach(n=>n.classList.remove('active'));
   doc.querySelectorAll('.flag-marker.selected').forEach(n=>n.classList.remove('selected'));
+  doc.querySelectorAll('.food-marker.selected').forEach(n=>n.classList.remove('selected'));
 }
 
 function safeScale(width,height,wanted){
