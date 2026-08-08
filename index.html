@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="editor.css?v=4">
+<link rel="stylesheet" href="flag-tools.css?v=1">
 </head>
 <body>
 <div class="app">
@@ -61,6 +62,25 @@
     </div>
 
     <div class="group">
+      <div class="group-title">Cờ đánh dấu</div>
+      <div class="flag-toolbar"><button id="addFlag" class="btn primary">＋ Thêm cờ</button><button id="duplicateFlag" class="btn">Nhân bản cờ</button></div>
+      <select id="flagSelect" size="4"></select>
+      <div id="flagCount" class="flag-count">0 cờ trên bản đồ</div>
+      <div id="flagEmpty" class="tip">Bấm “Thêm cờ” để tạo cờ tam giác mới.</div>
+      <div id="flagEditor" style="display:none">
+        <label style="margin-top:8px">Kích thước cờ</label>
+        <div class="value-line"><input id="flagSizeRange" type="range" min="12" max="120" step="1" value="34"><input id="flagSize" type="number" min="12" max="120" step="1" value="34"></div>
+        <div class="row"><div><label>Màu cờ</label><input id="flagColor" type="color" value="#e51d49"></div><div><label>Màu cán</label><input id="flagPoleColor" type="color" value="#333333"></div></div>
+        <div class="row"><div><label>Hướng cờ</label><select id="flagDirection"><option value="right">Sang phải</option><option value="left">Sang trái</option></select></div><div><label>Vị trí nhanh</label><button id="centerFlag" class="btn" style="width:100%;margin-top:1px">Đưa vào giữa</button></div></div>
+        <div class="flag-position"><div><label>X</label><input id="flagX" type="number" step="1"></div><div><label>Y</label><input id="flagY" type="number" step="1"></div></div>
+        <div class="flag-toolbar"><button id="deleteFlag" class="btn danger">Xóa cờ</button><button id="clearFlags" class="btn danger">Xóa tất cả cờ</button></div>
+      </div>
+      <label class="check"><input id="showFlags" type="checkbox" checked> Hiện cờ đánh dấu</label>
+      <label class="check"><input id="dragFlags" type="checkbox" checked> Cho phép kéo thả cờ</label>
+      <div class="tip">Cờ nằm trực tiếp trong SVG nên sẽ xuất cùng SVG/PNG/PDF. Vị trí, kích thước và màu được tự lưu và sao lưu an toàn.</div>
+    </div>
+
+    <div class="group">
       <div class="group-title">Hiển thị & lưu</div>
       <label class="check"><input id="showLabels" type="checkbox" checked> Hiện tên tỉnh</label>
       <label class="check"><input id="showRoutes" type="checkbox" checked> Hiện 13 mũi tên mặc định</label>
@@ -104,6 +124,7 @@
         <g id="lineLayer"></g>
         <g id="labelLayer"></g>
         <g id="markerLayer"></g>
+        <g id="flagLayer"></g>
         <g id="handleLayer"></g>
         <g id="previewLayer"></g>
       </g>
@@ -115,12 +136,12 @@
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="persistence.js?v=1"></script>
+<script src="persistence.js?v=2"></script>
 <script>
 (()=>{
   const ready=window.__VN_PERSIST_READY||Promise.resolve();
   const load=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error('Không tải được '+src));document.body.appendChild(s)});
-  ready.catch(err=>console.warn('Persistence init failed',err)).then(()=>load('editor.js?v=5')).then(()=>load('tour-route.js?v=2')).then(()=>load('export-tools.js?v=2')).catch(err=>{console.error(err);const n=document.getElementById('saveStatus');if(n)n.textContent='Lỗi tải editor: '+err.message});
+  ready.catch(err=>console.warn('Persistence init failed',err)).then(()=>load('editor.js?v=5')).then(()=>load('tour-route.js?v=2')).then(()=>load('flag-tools.js?v=1')).then(()=>load('export-tools.js?v=2')).catch(err=>{console.error(err);const n=document.getElementById('saveStatus');if(n)n.textContent='Lỗi tải editor: '+err.message});
 })();
 </script>
 </body>
