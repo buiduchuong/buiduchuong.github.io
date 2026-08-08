@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="editor.css?v=4">
 <link rel="stylesheet" href="flag-tools.css?v=1">
+<link rel="stylesheet" href="food-tools.css?v=1">
 </head>
 <body>
 <div class="app">
@@ -81,6 +82,28 @@
     </div>
 
     <div class="group">
+      <div class="group-title">Điểm ăn uống</div>
+      <div class="food-toolbar"><button id="addFoodItem" class="btn primary">＋ Thêm điểm</button><button id="duplicateFoodItem" class="btn">Nhân bản</button></div>
+      <select id="foodSelect" size="4"></select>
+      <div id="foodCount" class="food-count">0 điểm ăn uống</div>
+      <div id="foodEmpty" class="tip">Bấm “Thêm điểm” để tạo biểu tượng ăn uống mới.</div>
+      <div id="foodEditor" style="display:none">
+        <div class="row"><div><label>Kiểu biểu tượng</label><select id="foodType"><option value="restaurant">Nhà hàng</option><option value="coffee">Cà phê</option><option value="drink">Đồ uống</option></select></div><div><label>Vị trí nhanh</label><button id="centerFoodItem" class="btn" style="width:100%;margin-top:1px">Đưa vào giữa</button></div></div>
+        <label style="margin-top:8px">Tên hiển thị</label><input id="foodLabel" type="text" value="Ăn uống" maxlength="60">
+        <label class="check"><input id="foodShowLabel" type="checkbox" checked> Hiện tên dưới biểu tượng</label>
+        <label style="margin-top:8px">Kích thước</label>
+        <div class="value-line"><input id="foodSizeRange" type="range" min="16" max="140" step="1" value="38"><input id="foodSize" type="number" min="16" max="140" step="1" value="38"></div>
+        <div class="row"><div><label>Màu nền</label><input id="foodBgColor" type="color" value="#f08a24"></div><div><label>Màu icon</label><input id="foodIconColor" type="color" value="#ffffff"></div></div>
+        <div class="row"><div><label>Màu chữ</label><input id="foodTextColor" type="color" value="#333333"></div><div></div></div>
+        <div class="food-position"><div><label>X</label><input id="foodX" type="number" step="1"></div><div><label>Y</label><input id="foodY" type="number" step="1"></div></div>
+        <div class="food-toolbar"><button id="deleteFoodItem" class="btn danger">Xóa điểm</button><button id="clearFoodItems" class="btn danger">Xóa tất cả</button></div>
+      </div>
+      <label class="check"><input id="showFoodItems" type="checkbox" checked> Hiện điểm ăn uống</label>
+      <label class="check"><input id="dragFoodItems" type="checkbox" checked> Cho phép kéo thả</label>
+      <div class="tip">Điểm ăn uống nằm trong SVG, có thể đổi kiểu/màu/kích thước/tên/vị trí và sẽ xuất cùng SVG/PNG/PDF. Dữ liệu được tự lưu và sao lưu IndexedDB.</div>
+    </div>
+
+    <div class="group">
       <div class="group-title">Hiển thị & lưu</div>
       <label class="check"><input id="showLabels" type="checkbox" checked> Hiện tên tỉnh</label>
       <label class="check"><input id="showRoutes" type="checkbox" checked> Hiện 13 mũi tên mặc định</label>
@@ -125,6 +148,7 @@
         <g id="labelLayer"></g>
         <g id="markerLayer"></g>
         <g id="flagLayer"></g>
+        <g id="foodLayer"></g>
         <g id="handleLayer"></g>
         <g id="previewLayer"></g>
       </g>
@@ -136,12 +160,12 @@
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="persistence.js?v=2"></script>
+<script src="persistence.js?v=3"></script>
 <script>
 (()=>{
   const ready=window.__VN_PERSIST_READY||Promise.resolve();
   const load=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error('Không tải được '+src));document.body.appendChild(s)});
-  ready.catch(err=>console.warn('Persistence init failed',err)).then(()=>load('editor.js?v=5')).then(()=>load('tour-route.js?v=2')).then(()=>load('flag-tools.js?v=1')).then(()=>load('export-tools.js?v=2')).catch(err=>{console.error(err);const n=document.getElementById('saveStatus');if(n)n.textContent='Lỗi tải editor: '+err.message});
+  ready.catch(err=>console.warn('Persistence init failed',err)).then(()=>load('editor.js?v=5')).then(()=>load('tour-route.js?v=2')).then(()=>load('flag-tools.js?v=2')).then(()=>load('food-tools.js?v=1')).then(()=>load('export-tools.js?v=3')).catch(err=>{console.error(err);const n=document.getElementById('saveStatus');if(n)n.textContent='Lỗi tải editor: '+err.message});
 })();
 </script>
 </body>
