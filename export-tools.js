@@ -167,3 +167,8 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
   if(document.querySelector('script[data-vn-font6-migration]'))return;
   const s=document.createElement('script');s.src='font6-migration.js?v=2';s.dataset.vnFont6Migration='1';s.onerror=()=>console.warn('Không tải được công cụ font tên tỉnh');document.body.appendChild(s);
 })();
+
+(()=>{
+  if(window.__VN_NOTE_TOOL||document.querySelector('script[data-vn-note-tool]'))return;
+  const s=document.createElement('script');s.src='note-tools.js?v=1';s.dataset.vnNoteTool='1';s.onerror=()=>console.warn('Không tải được công cụ ghi chú');document.body.appendChild(s);
+})();
