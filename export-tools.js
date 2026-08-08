@@ -28,6 +28,7 @@ function cleanClone(doc){
   doc.querySelectorAll('#handleLayer,#previewLayer,.tooltip,.loading').forEach(n=>n.remove());
   doc.querySelectorAll('.editor-line.selected').forEach(n=>n.classList.remove('selected'));
   doc.querySelectorAll('.province.active').forEach(n=>n.classList.remove('active'));
+  doc.querySelectorAll('.flag-marker.selected').forEach(n=>n.classList.remove('selected'));
 }
 
 function safeScale(width,height,wanted){
