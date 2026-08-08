@@ -188,3 +188,12 @@ setStatus('Xuất file chỉ đọc trạng thái hiện tại; không ghi đè 
   s.onerror=()=>console.warn('Không tải được phím tắt Ctrl+C / Ctrl+V / Ctrl+Z / Delete');
   document.body.appendChild(s);
 })();
+
+(()=>{
+  if(document.querySelector('script[data-vn-font6-migration]'))return;
+  const s=document.createElement('script');
+  s.src='font6-migration.js?v=1';
+  s.dataset.vnFont6Migration='1';
+  s.onerror=()=>console.warn('Không tải được chuyển đổi font tên tỉnh về 6px');
+  document.body.appendChild(s);
+})();
