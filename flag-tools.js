@@ -27,9 +27,9 @@ function deleteFlag(){const f=selectedFlag();if(!f)return;state.flags=state.flag
 function clearFlags(){if(!state.flags.length)return;if(!confirm('Xóa toàn bộ cờ đánh dấu?'))return;state.flags=[];state.selected=null;save(true);render()}
 function centerFlag(){const f=selectedFlag();if(!f)return;const[x,y]=visibleCenter();f.x=x;f.y=y;save();render()}
 function setSize(v){const f=selectedFlag();if(!f)return;f.size=clamp(Number(v)||34,12,120);$('flagSize').value=f.size;$('flagSizeRange').value=f.size;save();render()}
-function startDrag(e){if(!state.dragEnabled)return;e.preventDefault();e.stopPropagation();const id=e.currentTarget.dataset.id;state.selected=id;const f=selectedFlag();if(!f)return;const p=worldFromClient(e);state.drag={id,dx:p[0]-f.x,dy:p[1]-f.y,pointerId:e.pointerId};try{e.currentTarget.setPointerCapture(e.pointerId)}catch{}render()}
+function startDrag(e){if(!state.dragEnabled)return;e.preventDefault();e.stopPropagation();const id=e.currentTarget.dataset.id;state.selected=id;const f=selectedFlag();if(!f)return;const p=worldFromClient(e);state.drag={id,dx:p[0]-f.x,dy:p[1]-f.y,pointerId:e.pointerId};try{svg.setPointerCapture(e.pointerId)}catch{}render()}
 function moveDrag(e){if(!state.drag)return;const f=selectedFlag();if(!f||f.id!==state.drag.id)return;const p=worldFromClient(e);f.x=p[0]-state.drag.dx;f.y=p[1]-state.drag.dy;save(false);render()}
-function endDrag(e){if(!state.drag)return;state.drag=null;save(true);render()}
+function endDrag(e){if(!state.drag)return;const pointerId=state.drag.pointerId;state.drag=null;try{svg.releasePointerCapture(pointerId)}catch{}save(true);render()}
 function setPos(axis,v){const f=selectedFlag();if(!f)return;const n=Number(v);if(!Number.isFinite(n))return;f[axis]=n;save();render()}
 load();
 $('addFlag')?.addEventListener('click',addFlag);$('duplicateFlag')?.addEventListener('click',duplicateFlag);$('deleteFlag')?.addEventListener('click',deleteFlag);$('clearFlags')?.addEventListener('click',clearFlags);$('centerFlag')?.addEventListener('click',centerFlag);
