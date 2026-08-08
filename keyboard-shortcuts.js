@@ -9,9 +9,21 @@ const TYPES={
   icon:{selector:'.food-marker[data-id]',selected:'.food-marker.selected[data-id]',duplicate:'duplicateFoodItem',name:'icon'},
   line:{selector:'.editor-line[data-id]',selected:'.editor-line.selected[data-id]',duplicate:'duplicateLine',name:'đường/mũi tên'}
 };
+const HISTORY_KEYS=['vn-map-editor-v4','vn-map-label-config-v2','vn-xuyen-viet-route-v1','vn-map-flags-v1','vn-map-food-v1','vn-map-flag-shapes-v1'];
+const HISTORY_DB='vn-map-editor-undo-history';
+const HISTORY_STORE='history';
+const HISTORY_ID='main';
+const MAX_HISTORY=30;
+const GROUP_MS=650;
 let active=null;
 let clipboard=null;
 let toastTimer=null;
+let history=[];
+let historyIndex=-1;
+let lastHistoryAt=0;
+let historyDb=null;
+let historyReady=false;
+let persistTimer=null;
 
 function typingTarget(){
   const a=document.activeElement;
@@ -64,7 +76,7 @@ function toast(text){
   n.style.opacity='1';
   n.style.transform='translateY(0)';
   clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>{n.style.opacity='0';n.style.transform='translateY(-4px)'},1250);
+  toastTimer=setTimeout(()=>{n.style.opacity='0';n.style.transform='translateY(-4px)'},1400);
 }
 function selectSource(obj){
   const n=nodeFor(obj.kind,obj.id);
@@ -101,6 +113,119 @@ function pasteCopied(){
   return true;
 }
 
+function snapshot(){
+  const s={};
+  for(const key of HISTORY_KEYS){
+    try{s[key]=localStorage.getItem(key)}catch{s[key]=null}
+  }
+  return s;
+}
+function sameSnapshot(a,b){
+  if(!a||!b)return false;
+  return HISTORY_KEYS.every(k=>a[k]===b[k]);
+}
+function applySnapshot(s){
+  for(const key of HISTORY_KEYS){
+    try{if(s[key]==null)localStorage.removeItem(key);else localStorage.setItem(key,s[key])}catch(e){console.warn('Không khôi phục được',key,e)}
+  }
+}
+function openHistoryDb(){
+  return new Promise(resolve=>{
+    if(!window.indexedDB)return resolve(null);
+    const r=indexedDB.open(HISTORY_DB,1);
+    r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(HISTORY_STORE))r.result.createObjectStore(HISTORY_STORE,{keyPath:'id'})};
+    r.onsuccess=()=>resolve(r.result);
+    r.onerror=()=>resolve(null);
+  });
+}
+function readHistory(){
+  return new Promise(resolve=>{
+    if(!historyDb)return resolve(null);
+    try{const r=historyDb.transaction(HISTORY_STORE,'readonly').objectStore(HISTORY_STORE).get(HISTORY_ID);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>resolve(null)}catch{resolve(null)}
+  });
+}
+function writeHistory(){
+  if(!historyDb)return Promise.resolve(false);
+  return new Promise(resolve=>{
+    try{
+      const tx=historyDb.transaction(HISTORY_STORE,'readwrite');
+      tx.objectStore(HISTORY_STORE).put({id:HISTORY_ID,history,index:historyIndex,updatedAt:Date.now()});
+      tx.oncomplete=()=>resolve(true);tx.onerror=()=>resolve(false);tx.onabort=()=>resolve(false);
+    }catch{resolve(false)}
+  });
+}
+function scheduleHistoryPersist(){
+  clearTimeout(persistTimer);
+  persistTimer=setTimeout(()=>writeHistory(),500);
+}
+function trimHistory(){
+  if(history.length<=MAX_HISTORY)return;
+  const cut=history.length-MAX_HISTORY;
+  history.splice(0,cut);
+  historyIndex=Math.max(0,historyIndex-cut);
+}
+function captureNow(forceSeparate=false){
+  if(!historyReady)return false;
+  const cur=snapshot();
+  const base=history[historyIndex];
+  if(base&&sameSnapshot(cur,base))return false;
+  if(historyIndex<history.length-1)history.splice(historyIndex+1);
+  const now=Date.now();
+  if(!forceSeparate&&historyIndex>=1&&now-lastHistoryAt<GROUP_MS){
+    history[historyIndex]=cur;
+  }else{
+    history.push(cur);
+    historyIndex=history.length-1;
+  }
+  lastHistoryAt=now;
+  trimHistory();
+  scheduleHistoryPersist();
+  return true;
+}
+async function undo(){
+  if(!historyReady)return false;
+  captureNow(false);
+  if(historyIndex<=0){toast('Không còn thao tác để hoàn tác.');return false}
+  historyIndex--;
+  applySnapshot(history[historyIndex]);
+  await writeHistory();
+  try{sessionStorage.setItem('vn-map-history-toast','↶ Đã hoàn tác · Ctrl+Y để làm lại')}catch{}
+  location.reload();
+  return true;
+}
+async function redo(){
+  if(!historyReady)return false;
+  if(historyIndex>=history.length-1){toast('Không còn thao tác để làm lại.');return false}
+  historyIndex++;
+  applySnapshot(history[historyIndex]);
+  await writeHistory();
+  try{sessionStorage.setItem('vn-map-history-toast','↷ Đã làm lại · Ctrl+Z để hoàn tác')}catch{}
+  location.reload();
+  return true;
+}
+async function initHistory(){
+  historyDb=await openHistoryDb();
+  const saved=await readHistory();
+  const cur=snapshot();
+  if(saved&&Array.isArray(saved.history)&&saved.history.length){
+    history=saved.history.filter(x=>x&&typeof x==='object').slice(-MAX_HISTORY);
+    historyIndex=Math.max(0,Math.min(Number(saved.index)||0,history.length-1));
+    if(!sameSnapshot(cur,history[historyIndex])){
+      if(historyIndex<history.length-1)history.splice(historyIndex+1);
+      history.push(cur);historyIndex=history.length-1;trimHistory();
+    }
+  }else{
+    history=[cur];historyIndex=0;
+  }
+  lastHistoryAt=Date.now();
+  historyReady=true;
+  await writeHistory();
+  try{
+    const msg=sessionStorage.getItem('vn-map-history-toast');
+    if(msg){sessionStorage.removeItem('vn-map-history-toast');setTimeout(()=>toast(msg),250)}
+  }catch{}
+}
+
 document.addEventListener('pointerdown',e=>{
   const obj=findFromTarget(e.target);
   if(obj)active=obj;
@@ -119,8 +244,15 @@ document.addEventListener('keydown',e=>{
     if(copySelected())e.preventDefault();
   }else if(key==='v'){
     if(pasteCopied())e.preventDefault();
+  }else if(key==='z'&&!e.shiftKey){
+    e.preventDefault();undo();
+  }else if(key==='y'||(key==='z'&&e.shiftKey)){
+    e.preventDefault();redo();
   }
 },true);
 
-window.__VN_SHORTCUTS={copy:copySelected,paste:pasteCopied,getClipboard:()=>clipboard?{...clipboard}:null};
+setInterval(()=>captureNow(false),300);
+window.addEventListener('pagehide',()=>{captureNow(true);writeHistory()});
+initHistory();
+window.__VN_SHORTCUTS={copy:copySelected,paste:pasteCopied,undo,redo,getClipboard:()=>clipboard?{...clipboard}:null,getHistory:()=>({index:historyIndex,total:history.length})};
 })();
