@@ -172,3 +172,8 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
   if(window.__VN_NOTE_TOOL||document.querySelector('script[data-vn-note-tool]'))return;
   const s=document.createElement('script');s.src='note-tools.js?v=1';s.dataset.vnNoteTool='1';s.onerror=()=>console.warn('Không tải được công cụ ghi chú');document.body.appendChild(s);
 })();
+
+(()=>{
+  if(window.__VN_DEFAULT_ROUTE_DASH||document.querySelector('script[data-vn-default-route-dash]'))return;
+  const s=document.createElement('script');s.src='default-route-dash.js?v=1';s.dataset.vnDefaultRouteDash='1';s.onerror=()=>console.warn('Không tải được kiểu nét đứt cho 13 tuyến Hà Nội');document.body.appendChild(s);
+})();
