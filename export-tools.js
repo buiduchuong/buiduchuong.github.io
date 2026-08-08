@@ -183,8 +183,8 @@ setStatus('Xuất file chỉ đọc trạng thái hiện tại; không ghi đè 
 (()=>{
   if(window.__VN_OBJECT_SHORTCUTS||document.querySelector('script[data-vn-object-shortcuts]'))return;
   const s=document.createElement('script');
-  s.src='keyboard-shortcuts.js?v=2';
+  s.src='keyboard-shortcuts.js?v=3';
   s.dataset.vnObjectShortcuts='1';
-  s.onerror=()=>console.warn('Không tải được phím tắt Ctrl+C / Ctrl+V');
+  s.onerror=()=>console.warn('Không tải được phím tắt Ctrl+C / Ctrl+V / Ctrl+Z');
   document.body.appendChild(s);
 })();
