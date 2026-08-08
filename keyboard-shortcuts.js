@@ -256,3 +256,43 @@ window.addEventListener('pagehide',()=>{captureNow(true);writeHistory()});
 initHistory();
 window.__VN_SHORTCUTS={copy:copySelected,paste:pasteCopied,undo,redo,getClipboard:()=>clipboard?{...clipboard}:null,getHistory:()=>({index:historyIndex,total:history.length})};
 })();
+
+(()=>{
+'use strict';
+if(window.__VN_DELETE_SHORTCUT)return;
+window.__VN_DELETE_SHORTCUT=true;
+const DELETE_TYPES={
+  flag:{selector:'.flag-marker[data-id]',button:'deleteFlag',name:'cờ'},
+  shapeFlag:{selector:'.flag-shape-marker[data-id]',button:'deleteShapeFlag',name:'shape cờ'},
+  icon:{selector:'.food-marker[data-id]',button:'deleteFoodItem',name:'icon'},
+  line:{selector:'.editor-line[data-id]',button:'deleteLine',name:'đường/mũi tên'}
+};
+let activeDelete=null;
+function isTyping(){const a=document.activeElement;return !!a&&(a.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(a.tagName))}
+function fromTarget(target){if(!(target instanceof Element))return null;for(const [kind,t] of Object.entries(DELETE_TYPES)){const n=target.closest(t.selector);if(n)return{kind,id:n.dataset.id}}return null}
+function findNode(obj){if(!obj)return null;const t=DELETE_TYPES[obj.kind];if(!t)return null;return [...document.querySelectorAll(t.selector)].find(n=>n.dataset.id===obj.id)||null}
+function activateFromSelect(kind,selectId){const s=document.getElementById(selectId);if(!s)return;s.addEventListener('change',()=>{if(s.value)activeDelete={kind,id:s.value}})}
+function removeActive(){
+  if(!activeDelete||!findNode(activeDelete))return false;
+  const t=DELETE_TYPES[activeDelete.kind],node=findNode(activeDelete);
+  try{node.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}))}catch{node.click?.()}
+  const name=t.name,btn=document.getElementById(t.button);
+  if(!btn)return false;
+  btn.click();
+  activeDelete=null;
+  const toast=document.getElementById('objectShortcutToast');
+  if(toast){toast.textContent=`Đã xóa ${name} · Ctrl+Z để hoàn tác`;toast.style.opacity='1';toast.style.transform='translateY(0)';setTimeout(()=>{toast.style.opacity='0';toast.style.transform='translateY(-4px)'},1300)}
+  return true;
+}
+document.addEventListener('pointerdown',e=>{const obj=fromTarget(e.target);if(obj)activeDelete=obj},true);
+document.addEventListener('click',e=>{const obj=fromTarget(e.target);if(obj)activeDelete=obj},true);
+activateFromSelect('flag','flagSelect');
+activateFromSelect('shapeFlag','shapeFlagSelect');
+activateFromSelect('icon','foodSelect');
+document.addEventListener('keydown',e=>{
+  if(isTyping()||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key!=='Delete'&&e.key!=='Backspace')return;
+  if(removeActive()){e.preventDefault();e.stopPropagation()}
+},true);
+window.__VN_DELETE_SELECTED=removeActive;
+})();
