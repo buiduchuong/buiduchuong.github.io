@@ -12,12 +12,12 @@ const validColor=(v,d)=>/^#[0-9a-f]{6}$/i.test(v||'')?v:d;
 function uid(){return'flag-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7)}
 function normalizeFlag(f,i=0){
   const kind=f?.kind==='image'?'image':'triangle';
-  const imageW=clamp(Number(f?.imageW)||82,30,280),imageH=clamp(Number(f?.imageH)||52,20,220);
+  const imageW=clamp(Number(f?.imageW)||82,30,280),imageH=clamp(Number(f?.imageH)||52,20,220),bw=Number(f?.borderWidth);
   return{
     id:String(f?.id||uid()),x:Number.isFinite(Number(f?.x))?Number(f.x):700+i*14,y:Number.isFinite(Number(f?.y))?Number(f.y):500+i*10,
     kind,size:clamp(Number(f?.size)||34,12,120),flagColor:validColor(f?.flagColor,'#e51d49'),poleColor:validColor(f?.poleColor,'#333333'),direction:f?.direction==='left'?'left':'right',
     imageSrc:String(f?.imageSrc||''),imageUrl:String(f?.imageUrl||''),imageW,imageH,imageRatio:Number(f?.imageRatio)>0?Number(f.imageRatio):imageW/imageH,
-    lockRatio:f?.lockRatio!==false,imageFit:f?.imageFit==='contain'?'contain':'cover',borderColor:validColor(f?.borderColor,'#ffffff'),borderWidth:clamp(Number(f?.borderWidth)??1.5,0,8),radius:clamp(Number(f?.radius)||2,0,30)
+    lockRatio:f?.lockRatio!==false,imageFit:f?.imageFit==='contain'?'contain':'cover',borderColor:validColor(f?.borderColor,'#ffffff'),borderWidth:clamp(Number.isFinite(bw)?bw:1.5,0,8),radius:clamp(Number(f?.radius)||2,0,30)
   }
 }
 function load(){try{const d=JSON.parse(localStorage.getItem(STORE)||'{}');state.flags=Array.isArray(d.flags)?d.flags.map(normalizeFlag):[];state.show=d.show!==false;state.dragEnabled=d.dragEnabled!==false}catch{state.flags=[]}}
@@ -33,13 +33,8 @@ function drawImageFlag(g,f){
   g.appendChild(el('rect',{x:b.x-pad,y:b.y-pad,width:b.w+pad*2,height:b.poleH+pad+14,class:'flag-hit'}));
   g.appendChild(el('line',{x1:0,y1:5,x2:0,y2:-b.poleH,class:'flag-pole',stroke:f.poleColor,'stroke-width':Math.max(2,b.h*.045)}));
   const cp=el('clipPath',{id:clipId}),cr=el('rect',{x:b.x,y:b.y,width:b.w,height:b.h,rx:f.radius,ry:f.radius});cp.appendChild(cr);g.appendChild(cp);
-  if(f.imageSrc){
-    const im=el('image',{x:b.x,y:b.y,width:b.w,height:b.h,href:f.imageSrc,'clip-path':`url(#${clipId})`,preserveAspectRatio:f.imageFit==='contain'?'xMidYMid meet':'xMidYMid slice'});
-    if(/^https?:/i.test(f.imageSrc))im.setAttribute('crossorigin','anonymous');g.appendChild(im)
-  }else{
-    g.appendChild(el('rect',{x:b.x,y:b.y,width:b.w,height:b.h,rx:f.radius,ry:f.radius,fill:'#eee8df'}));
-    const t=el('text',{x:b.x+b.w/2,y:b.y+b.h/2,class:'flag-image-placeholder','font-size':clamp(Math.min(b.w,b.h)*.22,9,24),fill:'#8a8177'});t.textContent='ẢNH';g.appendChild(t)
-  }
+  g.appendChild(el('rect',{x:b.x,y:b.y,width:b.w,height:b.h,rx:f.radius,ry:f.radius,fill:'#ffffff'}));
+  if(f.imageSrc){const im=el('image',{x:b.x,y:b.y,width:b.w,height:b.h,href:f.imageSrc,'clip-path':`url(#${clipId})`,preserveAspectRatio:f.imageFit==='contain'?'xMidYMid meet':'xMidYMid slice'});g.appendChild(im)}else{const t=el('text',{x:b.x+b.w/2,y:b.y+b.h/2,class:'flag-image-placeholder','font-size':clamp(Math.min(b.w,b.h)*.22,9,24),fill:'#8a8177'});t.textContent='ẢNH';g.appendChild(t)}
   g.appendChild(el('rect',{x:b.x,y:b.y,width:b.w,height:b.h,rx:f.radius,ry:f.radius,fill:'none',stroke:f.borderColor,'stroke-width':f.borderWidth,class:'flag-image-border'}));
   g.appendChild(el('circle',{cx:0,cy:5,r:Math.max(2.5,b.h*.055),class:'flag-base',fill:f.poleColor}))
 }
@@ -73,7 +68,7 @@ async function optimizeBlob(blob){
   const url=URL.createObjectURL(blob);try{const im=await loadHtmlImage(url),max=1000,scale=Math.min(1,max/Math.max(im.naturalWidth||1,im.naturalHeight||1)),w=Math.max(1,Math.round(im.naturalWidth*scale)),h=Math.max(1,Math.round(im.naturalHeight*scale)),c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.drawImage(im,0,0,w,h);let data=c.toDataURL('image/webp',.84);if(!data.startsWith('data:image/webp'))data=c.toDataURL('image/png');return{data,width:im.naturalWidth,height:im.naturalHeight}}finally{URL.revokeObjectURL(url)}}
 function applyImageData(f,data,width,height,sourceUrl=''){f.kind='image';f.imageSrc=data;f.imageUrl=sourceUrl;const ratio=(Number(width)||f.imageW)/(Number(height)||f.imageH);if(Number.isFinite(ratio)&&ratio>0){f.imageRatio=ratio;if(f.lockRatio)f.imageH=clamp(f.imageW/ratio,20,220)}save(true);render()}
 async function chooseLocalFile(file){const f=selectedFlag();if(!f||!file)return;try{setImageStatus('Đang xử lý ảnh từ máy…','');const out=await optimizeBlob(file);applyImageData(f,out.data,out.width,out.height,'');setImageStatus(`✓ Đã lưu ảnh từ máy: ${file.name}`,'ok')}catch(e){setImageStatus(e.message||String(e),'error')}}
-async function useImageUrl(){const f=selectedFlag();if(!f)return;const url=String($('flagImageUrl')?.value||'').trim();if(!url){setImageStatus('Hãy nhập URL ảnh.','warn');return}if(!/^https?:\/\//i.test(url)&&!/^data:image\//i.test(url)){setImageStatus('URL ảnh phải bắt đầu bằng http:// hoặc https://','error');return}try{setImageStatus('Đang tải ảnh từ URL để nhúng vào bản đồ…','');if(/^data:image\//i.test(url)){const im=await loadHtmlImage(url);applyImageData(f,url,im.naturalWidth,im.naturalHeight,'');setImageStatus('✓ Đã dùng ảnh data URL.','ok');return}const r=await fetch(url,{mode:'cors',cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const blob=await r.blob(),out=await optimizeBlob(blob);applyImageData(f,out.data,out.width,out.height,url);setImageStatus('✓ Đã tải và nhúng ảnh URL. Xuất PNG/PDF/SVG sẽ ổn định hơn.','ok')}catch(e){f.kind='image';f.imageSrc=url;f.imageUrl=url;save(true);render();setImageStatus('Không thể nhúng do CORS; đang dùng URL trực tiếp. Hiển thị web vẫn có thể được, nhưng xuất PNG/PDF phụ thuộc máy chủ ảnh.','warn')}}
+async function useImageUrl(){const f=selectedFlag();if(!f)return;const url=String($('flagImageUrl')?.value||'').trim();if(!url){setImageStatus('Hãy nhập URL ảnh.','warn');return}if(!/^https?:\/\//i.test(url)&&!/^data:image\//i.test(url)){setImageStatus('URL ảnh phải bắt đầu bằng http:// hoặc https://','error');return}try{setImageStatus('Đang tải ảnh từ URL để nhúng vào bản đồ…','');if(/^data:image\//i.test(url)){const im=await loadHtmlImage(url);applyImageData(f,url,im.naturalWidth,im.naturalHeight,'');setImageStatus('✓ Đã dùng ảnh data URL.','ok');return}const r=await fetch(url,{mode:'cors',cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const blob=await r.blob(),out=await optimizeBlob(blob);applyImageData(f,out.data,out.width,out.height,url);setImageStatus('✓ Đã tải và nhúng ảnh URL. Xuất PNG/PDF/SVG sẽ ổn định hơn.','ok')}catch(e){f.kind='image';f.imageSrc=url;f.imageUrl=url;save(true);render();setImageStatus('Không thể nhúng do CORS; đang dùng URL trực tiếp. Ảnh sẽ được ưu tiên hiển thị trên web, nhưng xuất PNG/PDF phụ thuộc máy chủ ảnh.','warn')}}
 function clearFlagImage(){const f=selectedFlag();if(!f)return;f.imageSrc='';f.imageUrl='';save(true);render();setImageStatus('Đã xóa ảnh khỏi cờ.','')}
 load();
 $('addFlag')?.addEventListener('click',addTriangleFlag);$('addImageFlag')?.addEventListener('click',addImageFlag);$('duplicateFlag')?.addEventListener('click',duplicateFlag);$('deleteFlag')?.addEventListener('click',deleteFlag);$('clearFlags')?.addEventListener('click',clearFlags);$('centerFlag')?.addEventListener('click',centerFlag);
