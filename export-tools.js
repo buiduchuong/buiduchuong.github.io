@@ -29,7 +29,9 @@ function cleanClone(doc){
   doc.querySelectorAll('.editor-line.selected').forEach(n=>n.classList.remove('selected'));
   doc.querySelectorAll('.province.active').forEach(n=>n.classList.remove('active'));
   doc.querySelectorAll('.flag-marker.selected').forEach(n=>n.classList.remove('selected'));
+  doc.querySelectorAll('.flag-shape-marker.selected').forEach(n=>n.classList.remove('selected'));
   doc.querySelectorAll('.food-marker.selected').forEach(n=>n.classList.remove('selected'));
+  doc.querySelectorAll('.shape-drop-ready').forEach(n=>n.classList.remove('shape-drop-ready'));
 }
 
 function safeScale(width,height,wanted){
@@ -172,7 +174,7 @@ setStatus('Xuất file chỉ đọc trạng thái hiện tại; không ghi đè 
 (()=>{
   if(window.__VN_OBJECT_SHORTCUTS||document.querySelector('script[data-vn-object-shortcuts]'))return;
   const s=document.createElement('script');
-  s.src='keyboard-shortcuts.js?v=1';
+  s.src='keyboard-shortcuts.js?v=2';
   s.dataset.vnObjectShortcuts='1';
   s.onerror=()=>console.warn('Không tải được phím tắt Ctrl+C / Ctrl+V');
   document.body.appendChild(s);
