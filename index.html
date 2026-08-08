@@ -69,7 +69,8 @@
       <div class="row"><button id="exportAll" class="btn primary">Xuất SVG</button><button id="resetAll" class="btn">Khôi phục tất cả</button></div>
       <div class="row"><button id="exportConfig" class="btn">Xuất cấu hình</button><button id="importConfig" class="btn">Nhập cấu hình</button></div>
       <input id="configFile" type="file" accept="application/json" hidden>
-      <div class="tip">Mọi chỉnh sửa được tự lưu bằng localStorage trên trình duyệt này.</div>
+      <div id="saveStatus" class="mode-note">Đang kiểm tra bản lưu…</div>
+      <div class="tip">Tự lưu vào localStorage và sao lưu dự phòng bằng IndexedDB. Khi mở lại, hệ thống sẽ khôi phục bản lưu nếu localStorage bị thiếu.</div>
     </div>
 
     <div class="group">
@@ -114,8 +115,13 @@
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="editor.js?v=4"></script>
-<script src="tour-route.js?v=1"></script>
-<script src="export-tools.js?v=1"></script>
+<script src="persistence.js?v=1"></script>
+<script>
+(()=>{
+  const ready=window.__VN_PERSIST_READY||Promise.resolve();
+  const load=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error('Không tải được '+src));document.body.appendChild(s)});
+  ready.catch(err=>console.warn('Persistence init failed',err)).then(()=>load('editor.js?v=5')).then(()=>load('tour-route.js?v=2')).then(()=>load('export-tools.js?v=2')).catch(err=>{console.error(err);const n=document.getElementById('saveStatus');if(n)n.textContent='Lỗi tải editor: '+err.message});
+})();
+</script>
 </body>
 </html>
