@@ -19,6 +19,15 @@ function applyDash(root=document){
   });
 }
 
+function loadTourPointShapes(){
+  if(window.__VN_TOUR_POINT_SHAPES||document.querySelector('script[data-vn-tour-point-shapes]'))return;
+  const s=document.createElement('script');
+  s.src='tour-point-shapes.js?v=1';
+  s.dataset.vnTourPointShapes='1';
+  s.onerror=()=>console.warn('Không tải được 5 shape điểm miền Tây');
+  document.body.appendChild(s);
+}
+
 function init(){
   const layer=document.getElementById('lineLayer');
   if(!layer){setTimeout(init,120);return}
@@ -26,6 +35,7 @@ function init(){
   const observer=new MutationObserver(()=>applyDash());
   observer.observe(layer,{childList:true,subtree:true});
   window.__VN_DEFAULT_ROUTE_DASH={apply:applyDash,ids:[...ROUTE_IDS],observer};
+  loadTourPointShapes();
 }
 
 init();
