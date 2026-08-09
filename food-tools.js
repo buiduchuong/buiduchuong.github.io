@@ -5,12 +5,13 @@ const STORE='vn-map-food-v1';
 const $=id=>document.getElementById(id);
 const svg=$('mapSvg'),viewport=$('viewport'),layer=$('foodLayer'),canvas=$('canvas');
 if(!svg||!viewport||!layer)return;
-const TYPES=['restaurant','coffee','drink','temple'];
+const TYPES=['restaurant','coffee','drink','temple','boat'];
 const TYPE_META={
   restaurant:{label:'Nhà hàng',bg:'#f08a24'},
   coffee:{label:'Cà phê',bg:'#9a6540'},
   drink:{label:'Đồ uống',bg:'#3c8da8'},
-  temple:{label:'Chùa',bg:'#a9483d'}
+  temple:{label:'Chùa',bg:'#a9483d'},
+  boat:{label:'Tàu / Cano',bg:'#2d77b8'}
 };
 const state={items:[],selected:null,show:true,dragEnabled:true,drag:null,saveTimer:null,paletteType:null};
 const el=(tag,a={})=>{const n=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>n.setAttribute(k,v));return n};
@@ -22,7 +23,7 @@ function normalizeItem(f,i=0){
   return{id:String(f?.id||uid()),x:Number.isFinite(Number(f?.x))?Number(f.x):700+i*14,y:Number.isFinite(Number(f?.y))?Number(f.y):500+i*10,size:clamp(Number(f?.size)||38,16,140),type,label:String(f?.label??meta.label).slice(0,60),showLabel:f?.showLabel!==false,bgColor:color(f?.bgColor,meta.bg),iconColor:color(f?.iconColor,'#ffffff'),textColor:color(f?.textColor,'#333333')}
 }
 function load(){try{const d=JSON.parse(localStorage.getItem(STORE)||'{}');state.items=Array.isArray(d.items)?d.items.map(normalizeItem):[];state.show=d.show!==false;state.dragEnabled=d.dragEnabled!==false}catch{state.items=[]}}
-function save(flush=false){try{localStorage.setItem(STORE,JSON.stringify({version:2,items:state.items,show:state.show,dragEnabled:state.dragEnabled,updatedAt:Date.now()}))}catch(e){console.warn('Không lưu được thư viện icon',e)}if(flush&&window.__VN_PERSIST?.flush)window.__VN_PERSIST.flush();else scheduleFlush()}
+function save(flush=false){try{localStorage.setItem(STORE,JSON.stringify({version:3,items:state.items,show:state.show,dragEnabled:state.dragEnabled,updatedAt:Date.now()}))}catch(e){console.warn('Không lưu được thư viện icon',e)}if(flush&&window.__VN_PERSIST?.flush)window.__VN_PERSIST.flush();else scheduleFlush()}
 function scheduleFlush(){clearTimeout(state.saveTimer);state.saveTimer=setTimeout(()=>window.__VN_PERSIST?.flush?.(),500)}
 function selectedItem(){return state.items.find(f=>f.id===state.selected)||null}
 function worldFromClient(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=viewport.getScreenCTM();if(!m)return[700,500];const p=pt.matrixTransform(m.inverse());return[p.x,p.y]}
@@ -62,9 +63,17 @@ function drawTemple(g,s,c,w){
   line(g,{x1:s*.08,y1:s*.05,x2:s*.08,y2:s*.25,stroke:c,'stroke-width':sw*.8});
   line(g,{x1:-s*.27,y1:s*.27,x2:s*.27,y2:s*.27,stroke:c,'stroke-width':sw});
 }
-function drawType(g,type,s,c,w){if(type==='coffee')drawCoffee(g,s,c,w);else if(type==='drink')drawDrink(g,s,c,w);else if(type==='temple')drawTemple(g,s,c,w);else drawRestaurant(g,s,c,w)}
+function drawBoat(g,s,c,w){
+  path(g,{d:`M${-s*.34},${s*.03} L${s*.34},${s*.03} L${s*.22},${s*.24} L${-s*.2},${s*.24} Z`,stroke:c,'stroke-width':w});
+  line(g,{x1:-s*.14,y1:s*.02,x2:-s*.14,y2:-s*.2,stroke:c,'stroke-width':w});
+  line(g,{x1:-s*.14,y1:-s*.2,x2:s*.1,y2:-s*.2,stroke:c,'stroke-width':w});
+  line(g,{x1:s*.1,y1:-s*.2,x2:s*.19,y2:s*.02,stroke:c,'stroke-width':w});
+  path(g,{d:`M${-s*.34},${s*.32} Q${-s*.17},${s*.24} 0,${s*.32} Q${s*.17},${s*.4} ${s*.34},${s*.32}`,stroke:c,'stroke-width':w*.8});
+}
+function drawType(g,type,s,c,w){if(type==='coffee')drawCoffee(g,s,c,w);else if(type==='drink')drawDrink(g,s,c,w);else if(type==='temple')drawTemple(g,s,c,w);else if(type==='boat')drawBoat(g,s,c,w);else drawRestaurant(g,s,c,w)}
 function drawItem(f){
   const g=el('g',{class:'food-marker'+(f.id===state.selected?' selected':'')+(state.dragEnabled?'':' drag-disabled'),'data-id':f.id,transform:`translate(${f.x} ${f.y})`});
+  const title=el('title');title.textContent=f.label||TYPE_META[f.type]?.label||'Icon';g.appendChild(title);
   const s=f.size,r=s*.52,labelY=s*.82,hitW=Math.max(s*2.6,120),hitH=s*(f.showLabel&&f.label?1.35:1.1);
   g.appendChild(el('rect',{x:-hitW/2,y:-s*.62,width:hitW,height:hitH,class:'food-hit',fill:'transparent','pointer-events':'all'}));
   g.appendChild(el('circle',{cx:0,cy:0,r,class:'food-badge',fill:f.bgColor,stroke:'#fffdf8','stroke-width':'2.2'}));
@@ -92,6 +101,7 @@ function paletteIcon(type){
  if(type==='coffee')return `<svg viewBox="0 0 32 32" aria-hidden="true"><path ${common} d="M8 12h12v8H8zM20 14h2a3 3 0 0 1 0 6h-2M6 23h18M11 9c-1-2 1-3 0-5M16 9c-1-2 1-3 0-5"/></svg>`;
  if(type==='drink')return `<svg viewBox="0 0 32 32" aria-hidden="true"><path ${common} d="M9 9h14l-2 15H11L9 9zM17 9l5-6h4M11 16h10"/></svg>`;
  if(type==='temple')return `<svg viewBox="0 0 32 32" aria-hidden="true"><path ${common} d="M16 3v3M6 11Q16 4 26 11M5 12h22M8 17q8-6 16 0M7 18h18M10 19v8M22 19v8M14 20v7M18 20v7M8 28h16"/></svg>`;
+ if(type==='boat')return `<svg viewBox="0 0 32 32" aria-hidden="true"><path ${common} d="M5 17h22l-4 7H9l-4-7zM11 17V9h8l3 8M5 27q4-3 8 0t8 0t8 0"/></svg>`;
  return `<svg viewBox="0 0 32 32" aria-hidden="true"><path ${common} d="M10 5v9M7 5v6h6V5M10 14v13M21 5c-4 0-4 9 0 9M21 14v13"/></svg>`;
 }
 function mountPalette(){
@@ -99,7 +109,8 @@ function mountPalette(){
  const title=group.querySelector('.group-title');if(title)title.textContent='Thư viện icon';
  add.style.display='none';if(add.parentElement)add.parentElement.classList.add('icon-old-toolbar');
  const sel=$('foodSelect');if(sel)sel.size=3;
- const typeSelect=$('foodType');if(typeSelect&&!typeSelect.querySelector('option[value="temple"]')){const o=document.createElement('option');o.value='temple';o.textContent='Chùa';typeSelect.appendChild(o)}
+ const typeSelect=$('foodType');
+ if(typeSelect)TYPES.forEach(type=>{if(typeSelect.querySelector(`option[value="${type}"]`))return;const o=document.createElement('option');o.value=type;o.textContent=TYPE_META[type].label;typeSelect.appendChild(o)});
  const empty=$('foodEmpty');if(empty)empty.textContent='Kéo icon từ bảng xuống bản đồ hoặc bấm một icon để thêm nhanh.';
  const palette=document.createElement('div');palette.id='iconPalette';palette.className='icon-palette';palette.setAttribute('aria-label','Thư viện icon kéo thả');
  TYPES.forEach(type=>{const b=document.createElement('button');b.type='button';b.className='icon-palette-item';b.draggable=true;b.dataset.type=type;b.title=`Kéo ${TYPE_META[type].label} vào bản đồ`;b.innerHTML=paletteIcon(type)+`<span>${TYPE_META[type].label}</span>`;b.addEventListener('click',()=>addItem(type));b.addEventListener('dragstart',e=>{state.paletteType=type;b.classList.add('dragging');try{e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData('text/x-map-icon',type);e.dataTransfer.setData('text/plain',type)}catch{}});b.addEventListener('dragend',()=>{state.paletteType=null;b.classList.remove('dragging')});palette.appendChild(b)});
@@ -112,7 +123,7 @@ function mountPalette(){
 mountPalette();load();
 $('addFoodItem')?.addEventListener('click',()=>addItem('restaurant'));$('duplicateFoodItem')?.addEventListener('click',duplicateItem);$('deleteFoodItem')?.addEventListener('click',deleteItem);$('clearFoodItems')?.addEventListener('click',clearItems);$('centerFoodItem')?.addEventListener('click',centerItem);
 $('foodSelect')?.addEventListener('change',e=>select(e.target.value));$('foodSize')?.addEventListener('input',e=>setSize(e.target.value));$('foodSizeRange')?.addEventListener('input',e=>setSize(e.target.value));
-$('foodType')?.addEventListener('change',e=>{const f=selectedItem();if(!f)return;f.type=TYPES.includes(e.target.value)?e.target.value:'restaurant';save();render()});
+$('foodType')?.addEventListener('change',e=>{const f=selectedItem();if(!f)return;f.type=TYPES.includes(e.target.value)?e.target.value:'restaurant';const meta=TYPE_META[f.type];if(meta&&(!f.bgColor||Object.values(TYPE_META).some(m=>m.bg===f.bgColor)))f.bgColor=meta.bg;save();render()});
 $('foodLabel')?.addEventListener('input',e=>{const f=selectedItem();if(!f)return;f.label=e.target.value.slice(0,60);save();render()});
 $('foodShowLabel')?.addEventListener('change',e=>{const f=selectedItem();if(!f)return;f.showLabel=e.target.checked;save();render()});
 $('foodBgColor')?.addEventListener('input',e=>{const f=selectedItem();if(!f)return;f.bgColor=e.target.value;save();render()});$('foodIconColor')?.addEventListener('input',e=>{const f=selectedItem();if(!f)return;f.iconColor=e.target.value;save();render()});$('foodTextColor')?.addEventListener('input',e=>{const f=selectedItem();if(!f)return;f.textColor=e.target.value;save();render()});
