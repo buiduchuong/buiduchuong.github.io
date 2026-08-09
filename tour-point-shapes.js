@@ -4,6 +4,7 @@ if(window.__VN_TOUR_POINT_SHAPES)return;
 window.__VN_TOUR_POINT_SHAPES=true;
 
 const MARK='vn-map-tour-point-shapes-v4';
+const VIS_KEY='vn-map-tour-point-shapes-visible-v1';
 const $=id=>document.getElementById(id);
 const dispatch=(node,type)=>node?.dispatchEvent(new Event(type,{bubbles:true}));
 const wm=file=>'https://commons.wikimedia.org/wiki/Special:Redirect/file/'+encodeURIComponent(file)+'?width=900';
@@ -33,6 +34,60 @@ const ITEMS=[
  item('tour-lang-cham','Làng Chăm Châu Giang - Thánh đường Mubarak',616.67,778.27,'right',280,-218,wm('Chua nguoi cham,Chau giang-Tan chau,An giang, photo by Dyt - panoramio.jpg'))
 ];
 const IDS=ITEMS.map(x=>x.id);
+const IDSET=new Set(IDS);
+
+function tourVisible(){
+ try{return localStorage.getItem(VIS_KEY)!=='0'}catch{return true}
+}
+function setTourVisible(on){
+ try{localStorage.setItem(VIS_KEY,on?'1':'0')}catch{}
+ applyVisibility();
+ syncToggle();
+}
+function applyVisibility(){
+ const layer=$('shapeFlagLayer');
+ if(!layer)return;
+ const visible=tourVisible();
+ layer.querySelectorAll('.flag-shape-marker[data-id]').forEach(g=>{
+  if(IDSET.has(g.dataset.id))g.style.display=visible?'':'none';
+ });
+}
+function syncToggle(){
+ const btn=$('toggleTourPointShapes');
+ if(!btn)return;
+ const visible=tourVisible();
+ btn.textContent=visible?'Ẩn 20 ảnh địa điểm':'Hiện 20 ảnh địa điểm';
+ btn.title=visible?'Ẩn 20 shape ảnh và đường nối địa điểm':'Hiện lại 20 shape ảnh và đường nối địa điểm';
+ btn.dataset.hidden=visible?'0':'1';
+}
+function injectToggle(){
+ if($('toggleTourPointShapes')){syncToggle();return true}
+ const select=$('shapeFlagSelect');
+ const group=select?.closest('.group');
+ if(!select||!group)return false;
+ const wrap=document.createElement('div');
+ wrap.id='tourPointShapeToggleWrap';
+ wrap.style.cssText='margin:8px 0 7px';
+ const btn=document.createElement('button');
+ btn.id='toggleTourPointShapes';
+ btn.type='button';
+ btn.className='btn';
+ btn.style.cssText='width:100%;font-weight:800';
+ btn.addEventListener('click',()=>setTourVisible(!tourVisible()));
+ wrap.appendChild(btn);
+ select.insertAdjacentElement('beforebegin',wrap);
+ syncToggle();
+ return true;
+}
+let layerObserver=null;
+function observeLayer(){
+ const layer=$('shapeFlagLayer');
+ if(!layer||layerObserver)return !!layer;
+ layerObserver=new MutationObserver(()=>applyVisibility());
+ layerObserver.observe(layer,{childList:true,subtree:true});
+ applyVisibility();
+ return true;
+}
 
 function install(){
  if(localStorage.getItem(MARK)==='done')return true;
@@ -69,10 +124,16 @@ function install(){
 let tries=0;
 function boot(){
  tries++;
- if(install())return;
+ const installed=install();
+ const ui=injectToggle();
+ const observed=observeLayer();
+ applyVisibility();
+ if(installed&&ui&&observed)return;
  if(tries<180)setTimeout(boot,100);
  else console.warn('Shape tool chưa sẵn sàng; không reload trang.');
 }
+
+window.__VN_TOUR_POINT_SHAPES={ids:[...IDS],show:()=>setTourVisible(true),hide:()=>setTourVisible(false),toggle:()=>setTourVisible(!tourVisible()),isVisible:tourVisible,apply:applyVisibility};
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300),{once:true});
 else setTimeout(boot,300);
