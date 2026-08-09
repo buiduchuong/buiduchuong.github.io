@@ -164,3 +164,12 @@ window.__VN_TOUR_POINT_SHAPES={ids:[...IDS],show:()=>setTourVisible(true),hide:(
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300),{once:true});
 else setTimeout(boot,300);
 })();
+
+(()=>{
+ if(window.__VN_PNG_EXPORT_FIX||document.querySelector('script[data-vn-png-export-fix]'))return;
+ const s=document.createElement('script');
+ s.src='png-export-fix.js?v=1';
+ s.dataset.vnPngExportFix='1';
+ s.onerror=()=>console.warn('Không tải được bộ sửa xuất PNG 4K/8K');
+ document.body.appendChild(s);
+})();
