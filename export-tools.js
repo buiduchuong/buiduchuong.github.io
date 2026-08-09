@@ -159,6 +159,11 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
 })();
 
 (()=>{
+  if(window.__VN_TOUR_POINT_SHAPES||document.querySelector('script[data-vn-tour-point-shapes]'))return;
+  const s=document.createElement('script');s.src='tour-point-shapes.js?v=4';s.dataset.vnTourPointShapes='1';s.onerror=()=>console.warn('Không tải được 20 shape địa điểm hành trình');document.body.appendChild(s);
+})();
+
+(()=>{
   if(window.__VN_OBJECT_SHORTCUTS||document.querySelector('script[data-vn-object-shortcuts]'))return;
   const s=document.createElement('script');s.src='keyboard-shortcuts.js?v=4';s.dataset.vnObjectShortcuts='1';s.onerror=()=>console.warn('Không tải được phím tắt Ctrl+C / Ctrl+V / Ctrl+Z / Delete');document.body.appendChild(s);
 })();
@@ -175,7 +180,7 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
 
 (()=>{
   if(window.__VN_DEFAULT_ROUTE_DASH||document.querySelector('script[data-vn-default-route-dash]'))return;
-  const s=document.createElement('script');s.src='default-route-dash.js?v=1';s.dataset.vnDefaultRouteDash='1';s.onerror=()=>console.warn('Không tải được kiểu nét đứt cho 13 tuyến Hà Nội');document.body.appendChild(s);
+  const s=document.createElement('script');s.src='default-route-dash.js?v=2';s.dataset.vnDefaultRouteDash='1';s.onerror=()=>console.warn('Không tải được kiểu nét đứt cho 13 tuyến Hà Nội');document.body.appendChild(s);
 })();
 
 (()=>{
