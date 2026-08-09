@@ -22,7 +22,7 @@ function applyDash(root=document){
 function loadTourPointShapes(){
   if(window.__VN_TOUR_POINT_SHAPES||document.querySelector('script[data-vn-tour-point-shapes]'))return;
   const s=document.createElement('script');
-  s.src='tour-point-shapes.js?v=1';
+  s.src='tour-point-shapes.js?v=3';
   s.dataset.vnTourPointShapes='1';
   s.onerror=()=>console.warn('Không tải được 5 shape điểm miền Tây');
   document.body.appendChild(s);
