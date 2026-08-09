@@ -160,7 +160,7 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
 
 (()=>{
   if(window.__VN_TOUR_POINT_SHAPES||document.querySelector('script[data-vn-tour-point-shapes]'))return;
-  const s=document.createElement('script');s.src='tour-point-shapes.js?v=4';s.dataset.vnTourPointShapes='1';s.onerror=()=>console.warn('Không tải được 20 shape địa điểm hành trình');document.body.appendChild(s);
+  const s=document.createElement('script');s.src='tour-point-shapes.js?v=8';s.dataset.vnTourPointShapes='1';s.onerror=()=>console.warn('Không tải được 8 shape địa điểm nổi bật');document.body.appendChild(s);
 })();
 
 (()=>{
