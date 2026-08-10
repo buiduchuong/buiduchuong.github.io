@@ -13,14 +13,13 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const color=(v,d)=>/^#[0-9a-f]{6}$/i.test(v||'')?v:d;
 const el=(tag,a={})=>{const n=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>n.setAttribute(k,v));return n};
 function uid(){return'shape-flag-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7)}
-function defaults(type){if(type==='rect')return{w:94,h:52};if(type==='circle')return{w:56,h:56};if(type==='triangle')return{w:66,h:56};if(type==='image')return{w:96,h:60};return{w:56,h:56}}
+function defaults(type){if(type==='rect')return{w:94,h:52};if(type==='circle')return{w:56,h:56};if(type==='triangle')return{w:66,h:56};if(type==='image')return{w:80,h:50};return{w:56,h:56}}
 function normalize(f,i=0){
   const type=TYPES[f?.type]?f.type:'square',d=defaults(type);
   let w=clamp(Number(f?.w)||d.w,24,360),h=clamp(Number(f?.h)||d.h,20,280);
   if(type==='square'||type==='circle')w=h=Math.max(w,h);
   const rawRatio=Number(f?.imageRatio),imageRatio=rawRatio>0?rawRatio:(w/h||1.6);
-  if(type==='image'&&Math.abs(w/h-1)<.06&&Math.abs(imageRatio-1)>.08)h=clamp(w/imageRatio,20,280);
-  return{id:String(f?.id||uid()),x:Number.isFinite(Number(f?.x))?Number(f.x):700+i*12,y:Number.isFinite(Number(f?.y))?Number(f.y):500+i*8,type,side:f?.side==='left'?'left':'right',offset:clamp(Number(f?.offset)||34,10,320),headDy:clamp(Number(f?.headDy)||0,-320,320),connectorType:f?.connectorType==='elbow'?'elbow':'straight',elbowOffset:clamp(Number(f?.elbowOffset)||50,6,320),w,h,fill:color(f?.fill,'#f0c95e'),border:color(f?.border,'#554b43'),borderWidth:clamp(Number(f?.borderWidth)||1.8,.5,8),connectorColor:color(f?.connectorColor,'#554b43'),connectorWidth:clamp(Number(f?.connectorWidth)||1.7,.5,8),radius:clamp(Number(f?.radius)||4,0,30),imageSrc:String(f?.imageSrc||''),imageUrl:String(f?.imageUrl||''),imageRatio,lockRatio:f?.lockRatio!==false,imageFit:f?.imageFit==='cover'?'cover':'contain'}
+  return{id:String(f?.id||uid()),x:Number.isFinite(Number(f?.x))?Number(f.x):700+i*12,y:Number.isFinite(Number(f?.y))?Number(f.y):500+i*8,type,side:f?.side==='left'?'left':'right',offset:clamp(Number(f?.offset)||34,10,320),headDy:clamp(Number(f?.headDy)||0,-320,320),connectorType:f?.connectorType==='elbow'?'elbow':'straight',elbowOffset:clamp(Number(f?.elbowOffset)||50,6,320),w,h,fill:color(f?.fill,'#f0c95e'),border:color(f?.border,'#554b43'),borderWidth:clamp(Number(f?.borderWidth)||1.8,.5,8),connectorColor:color(f?.connectorColor,'#554b43'),connectorWidth:clamp(Number(f?.connectorWidth)||1.7,.5,8),radius:clamp(Number(f?.radius)||4,0,30),imageSrc:String(f?.imageSrc||''),imageUrl:String(f?.imageUrl||''),imageRatio,lockRatio:type==='image'?false:f?.lockRatio!==false,imageFit:f?.imageFit==='cover'?'cover':'contain'}
 }
 function load(){try{const d=JSON.parse(localStorage.getItem(STORE)||'{}');state.items=Array.isArray(d.items)?d.items.map(normalize):[];state.show=d.show!==false;state.dragEnabled=d.dragEnabled!==false}catch{state.items=[]}}
 function save(flush=false){try{localStorage.setItem(STORE,JSON.stringify({version:3,items:state.items,show:state.show,dragEnabled:state.dragEnabled,updatedAt:Date.now()}))}catch(e){console.warn('Không lưu được shape cờ',e);setImageStatus('Dung lượng lưu shape ảnh đã đầy. Hãy dùng ảnh nhỏ hơn.','error')}if(flush&&window.__VN_PERSIST?.flush)window.__VN_PERSIST.flush();else{clearTimeout(state.saveTimer);state.saveTimer=setTimeout(()=>window.__VN_PERSIST?.flush?.(),450)}}
@@ -76,16 +75,16 @@ function setField(key,v){
     if(!TYPES[v])return;
     const was=f.type;f.type=v;const d=defaults(v);
     if(v==='square'||v==='circle'){const s=Math.max(f.w,f.h,d.w);f.w=f.h=clamp(s,24,180)}
-    else if(v==='image'&&was!=='image'){f.w=d.w;f.h=d.h;f.imageRatio=d.w/d.h;f.lockRatio=true}
+    else if(v==='image'&&was!=='image'){f.w=d.w;f.h=d.h;f.imageRatio=d.w/d.h;f.lockRatio=false}
   }else if(key==='side')f.side=v==='left'?'left':'right';
   else if(key==='connectorType')f.connectorType=v==='elbow'?'elbow':'straight';
   else if(['fill','border','connectorColor'].includes(key))f[key]=v;
   else if(key==='w'){
     const n=clamp(Number(v)||f.w,24,360);f.w=n;
-    if(f.type==='square'||f.type==='circle')f.h=n;else if(f.type==='image'&&f.lockRatio)f.h=clamp(n/(f.imageRatio||1.6),20,280)
+    if(f.type==='square'||f.type==='circle')f.h=n
   }else if(key==='h'){
     const n=clamp(Number(v)||f.h,20,280);f.h=n;
-    if(f.type==='square'||f.type==='circle')f.w=n;else if(f.type==='image'&&f.lockRatio)f.w=clamp(n*(f.imageRatio||1.6),24,360)
+    if(f.type==='square'||f.type==='circle')f.w=n
   }else if(key==='offset')f.offset=clamp(Number(v)||f.offset,10,320);
   else if(key==='headDy')f.headDy=clamp(Number(v)||0,-320,320);
   else if(key==='elbowOffset')f.elbowOffset=clamp(Number(v)||50,6,320);
@@ -102,7 +101,7 @@ function endDrag(){if(!state.drag)return;const id=state.drag.pointerId;state.dra
 function setImageStatus(text,type=''){const n=$('shapeFlagImageStatus');if(!n)return;n.textContent=text;n.className='shape-image-status'+(type?' '+type:'')}
 function loadHtmlImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=()=>reject(new Error('Không đọc được ảnh'));im.src=src})}
 async function optimizeBlob(blob){if(!blob?.type?.startsWith('image/'))throw new Error('File không phải hình ảnh.');if(blob.size>18*1024*1024)throw new Error('Ảnh quá lớn. Vui lòng chọn ảnh dưới 18 MB.');const url=URL.createObjectURL(blob);try{const im=await loadHtmlImage(url),max=1200,scale=Math.min(1,max/Math.max(im.naturalWidth||1,im.naturalHeight||1)),w=Math.max(1,Math.round(im.naturalWidth*scale)),h=Math.max(1,Math.round(im.naturalHeight*scale)),c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.drawImage(im,0,0,w,h);let data=c.toDataURL('image/webp',.86);if(!data.startsWith('data:image/webp'))data=c.toDataURL('image/png');return{data,width:im.naturalWidth,height:im.naturalHeight}}finally{URL.revokeObjectURL(url)}}
-function applyImageData(f,data,width,height,sourceUrl=''){f.type='image';f.imageSrc=data;f.imageUrl=sourceUrl;const ratio=(Number(width)||f.w)/(Number(height)||f.h);if(Number.isFinite(ratio)&&ratio>0){f.imageRatio=ratio;f.lockRatio=true;f.h=clamp(f.w/ratio,20,280)}save(true);render()}
+function applyImageData(f,data,width,height,sourceUrl=''){f.type='image';f.imageSrc=data;f.imageUrl=sourceUrl;const ratio=(Number(width)||f.w)/(Number(height)||f.h);if(Number.isFinite(ratio)&&ratio>0)f.imageRatio=ratio;f.lockRatio=false;save(true);render()}
 async function chooseLocalFile(file){const f=selected();if(!f||f.type!=='image'||!file)return;try{setImageStatus('Đang xử lý ảnh từ máy…','');const out=await optimizeBlob(file);applyImageData(f,out.data,out.width,out.height,'');setImageStatus(`✓ Đã lưu ảnh từ máy: ${file.name}`,'ok')}catch(e){setImageStatus(e.message||String(e),'error')}}
 async function useImageUrl(){const f=selected();if(!f||f.type!=='image')return;const url=String($('shapeFlagImageUrl')?.value||'').trim();if(!url){setImageStatus('Hãy nhập URL ảnh.','warn');return}if(!/^https?:\/\//i.test(url)&&!/^data:image\//i.test(url)){setImageStatus('URL ảnh phải bắt đầu bằng http:// hoặc https://','error');return}try{setImageStatus('Đang tải ảnh từ URL…','');if(/^data:image\//i.test(url)){const im=await loadHtmlImage(url);applyImageData(f,url,im.naturalWidth,im.naturalHeight,'');setImageStatus('✓ Đã dùng ảnh data URL.','ok');return}const r=await fetch(url,{mode:'cors',cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const blob=await r.blob(),out=await optimizeBlob(blob);applyImageData(f,out.data,out.width,out.height,url);setImageStatus('✓ Đã tải và nhúng ảnh URL.','ok')}catch(e){f.imageSrc=url;f.imageUrl=url;try{const im=await loadHtmlImage(url),ratio=(im.naturalWidth||1)/(im.naturalHeight||1);if(ratio>0){f.imageRatio=ratio;f.lockRatio=true;f.h=clamp(f.w/ratio,20,280)}}catch{}save(true);render();setImageStatus('Máy chủ ảnh chặn CORS; đang dùng URL trực tiếp. Xuất PNG/PDF có thể phụ thuộc máy chủ ảnh.','warn')}}
 function clearImage(){const f=selected();if(!f||f.type!=='image')return;f.imageSrc='';f.imageUrl='';save(true);render();setImageStatus('Đã xóa ảnh khỏi shape.','')}
