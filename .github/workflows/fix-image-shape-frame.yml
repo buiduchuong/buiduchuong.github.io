@@ -1,0 +1,73 @@
+name: Fix image shape frame
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-image-shape-frame.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch image shape sizing
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path('flag-shape-tools.js')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = [
+            ("if(type==='image')return{w:96,h:60}", "if(type==='image')return{w:80,h:50}"),
+            ("  if(type==='image'&&Math.abs(w/h-1)<.06&&Math.abs(imageRatio-1)>.08)h=clamp(w/imageRatio,20,280);\n", ""),
+            ("lockRatio:f?.lockRatio!==false", "lockRatio:type==='image'?false:f?.lockRatio!==false"),
+            ("else if(v==='image'&&was!=='image'){f.w=d.w;f.h=d.h;f.imageRatio=d.w/d.h;f.lockRatio=true}", "else if(v==='image'&&was!=='image'){f.w=d.w;f.h=d.h;f.imageRatio=d.w/d.h;f.lockRatio=false}"),
+            ("if(f.type==='square'||f.type==='circle')f.h=n;else if(f.type==='image'&&f.lockRatio)f.h=clamp(n/(f.imageRatio||1.6),20,280)", "if(f.type==='square'||f.type==='circle')f.h=n"),
+            ("if(f.type==='square'||f.type==='circle')f.w=n;else if(f.type==='image'&&f.lockRatio)f.w=clamp(n*(f.imageRatio||1.6),24,360)", "if(f.type==='square'||f.type==='circle')f.w=n"),
+            ("function applyImageData(f,data,width,height,sourceUrl=''){f.type='image';f.imageSrc=data;f.imageUrl=sourceUrl;const ratio=(Number(width)||f.w)/(Number(height)||f.h);if(Number.isFinite(ratio)&&ratio>0){f.imageRatio=ratio;f.lockRatio=true;f.h=clamp(f.w/ratio,20,280)}save(true);render()}", "function applyImageData(f,data,width,height,sourceUrl=''){f.type='image';f.imageSrc=data;f.imageUrl=sourceUrl;const ratio=(Number(width)||f.w)/(Number(height)||f.h);if(Number.isFinite(ratio)&&ratio>0)f.imageRatio=ratio;f.lockRatio=false;save(true);render()}"),
+          ]
+
+          for old, new in replacements:
+            if old not in s:
+              raise SystemExit(f'Missing expected source fragment: {old[:100]}')
+            s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+          p = Path('export-tools.js')
+          s = p.read_text(encoding='utf-8')
+          old = "flag-shape-tools.js?v=3"
+          if old not in s:
+            raise SystemExit('Missing flag-shape-tools v3 loader')
+          p.write_text(s.replace(old, "flag-shape-tools.js?v=4"), encoding='utf-8')
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = "export-tools.js?v=5"
+          if old not in s:
+            raise SystemExit('Missing export-tools v5 loader')
+          p.write_text(s.replace(old, "export-tools.js?v=6"), encoding='utf-8')
+
+      - name: Validate JavaScript
+        run: |
+          node --check flag-shape-tools.js
+          node --check export-tools.js
+          grep -n "flag-shape-tools.js?v=4" export-tools.js
+          grep -n "export-tools.js?v=6" index.html
+
+      - name: Commit fixed frame behavior
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add flag-shape-tools.js export-tools.js index.html
+          git commit -m 'Keep image shape frames at exact dimensions'
+          git push
