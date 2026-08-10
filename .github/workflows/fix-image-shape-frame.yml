@@ -1,4 +1,4 @@
-name: Fix image shape frame
+name: Finish fixed image shape frame
 
 on:
   push:
@@ -18,56 +18,48 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Patch image shape sizing
+      - name: Remove final auto-ratio fallback
         shell: python
         run: |
           from pathlib import Path
 
           p = Path('flag-shape-tools.js')
           s = p.read_text(encoding='utf-8')
-
-          replacements = [
-            ("if(type==='image')return{w:96,h:60}", "if(type==='image')return{w:80,h:50}"),
-            ("  if(type==='image'&&Math.abs(w/h-1)<.06&&Math.abs(imageRatio-1)>.08)h=clamp(w/imageRatio,20,280);\n", ""),
-            ("lockRatio:f?.lockRatio!==false", "lockRatio:type==='image'?false:f?.lockRatio!==false"),
-            ("else if(v==='image'&&was!=='image'){f.w=d.w;f.h=d.h;f.imageRatio=d.w/d.h;f.lockRatio=true}", "else if(v==='image'&&was!=='image'){f.w=d.w;f.h=d.h;f.imageRatio=d.w/d.h;f.lockRatio=false}"),
-            ("if(f.type==='square'||f.type==='circle')f.h=n;else if(f.type==='image'&&f.lockRatio)f.h=clamp(n/(f.imageRatio||1.6),20,280)", "if(f.type==='square'||f.type==='circle')f.h=n"),
-            ("if(f.type==='square'||f.type==='circle')f.w=n;else if(f.type==='image'&&f.lockRatio)f.w=clamp(n*(f.imageRatio||1.6),24,360)", "if(f.type==='square'||f.type==='circle')f.w=n"),
-            ("function applyImageData(f,data,width,height,sourceUrl=''){f.type='image';f.imageSrc=data;f.imageUrl=sourceUrl;const ratio=(Number(width)||f.w)/(Number(height)||f.h);if(Number.isFinite(ratio)&&ratio>0){f.imageRatio=ratio;f.lockRatio=true;f.h=clamp(f.w/ratio,20,280)}save(true);render()}", "function applyImageData(f,data,width,height,sourceUrl=''){f.type='image';f.imageSrc=data;f.imageUrl=sourceUrl;const ratio=(Number(width)||f.w)/(Number(height)||f.h);if(Number.isFinite(ratio)&&ratio>0)f.imageRatio=ratio;f.lockRatio=false;save(true);render()}"),
-          ]
-
-          for old, new in replacements:
-            if old not in s:
-              raise SystemExit(f'Missing expected source fragment: {old[:100]}')
-            s = s.replace(old, new, 1)
-
-          p.write_text(s, encoding='utf-8')
+          old = "if(ratio>0){f.imageRatio=ratio;f.lockRatio=true;f.h=clamp(f.w/ratio,20,280)}"
+          new = "if(ratio>0)f.imageRatio=ratio;f.lockRatio=false"
+          if old not in s:
+            raise SystemExit('Missing CORS fallback auto-ratio fragment')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
 
           p = Path('export-tools.js')
           s = p.read_text(encoding='utf-8')
-          old = "flag-shape-tools.js?v=3"
+          old = 'flag-shape-tools.js?v=4'
           if old not in s:
-            raise SystemExit('Missing flag-shape-tools v3 loader')
-          p.write_text(s.replace(old, "flag-shape-tools.js?v=4"), encoding='utf-8')
+            raise SystemExit('Missing flag-shape-tools v4 loader')
+          p.write_text(s.replace(old, 'flag-shape-tools.js?v=5', 1), encoding='utf-8')
 
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          old = "export-tools.js?v=5"
+          old = 'export-tools.js?v=6'
           if old not in s:
-            raise SystemExit('Missing export-tools v5 loader')
-          p.write_text(s.replace(old, "export-tools.js?v=6"), encoding='utf-8')
+            raise SystemExit('Missing export-tools v6 loader')
+          p.write_text(s.replace(old, 'export-tools.js?v=7', 1), encoding='utf-8')
 
-      - name: Validate JavaScript
+      - name: Validate exact fixed-frame behavior
         run: |
           node --check flag-shape-tools.js
           node --check export-tools.js
-          grep -n "flag-shape-tools.js?v=4" export-tools.js
-          grep -n "export-tools.js?v=6" index.html
+          grep -q "if(type==='image')return{w:80,h:50}" flag-shape-tools.js
+          grep -q "lockRatio:type==='image'?false" flag-shape-tools.js
+          grep -q "f.lockRatio=false" flag-shape-tools.js
+          ! grep -q "f.h=clamp(f.w/ratio" flag-shape-tools.js
+          grep -n "flag-shape-tools.js?v=5" export-tools.js
+          grep -n "export-tools.js?v=7" index.html
 
-      - name: Commit fixed frame behavior
+      - name: Commit final fixed-frame behavior
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add flag-shape-tools.js export-tools.js index.html
-          git commit -m 'Keep image shape frames at exact dimensions'
+          git commit -m 'Make image shape dimensions fully independent'
           git push
