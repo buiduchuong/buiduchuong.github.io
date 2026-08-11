@@ -14,6 +14,7 @@ let busy=false;
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function status(text,error=false){const n=STATUS();if(!n)return;n.textContent=text;n.style.color=error?'#b11435':''}
 function waitFonts(){return document.fonts?.ready||Promise.resolve()}
+function failureRecord(img,href,error,index){let id=img?.closest?.('[data-id]')?.getAttribute('data-id')||img?.id||`image-${index+1}`;let name='';try{const f=window.__VN_FLAG_SHAPES?.getAll?.().find(x=>x?.id===id);name=f?.tourName||f?.label||''}catch{}let url=href;try{url=new URL(href,location.href).href}catch{}return{id,name,href,url,error:error?.message||String(error)}}
 function keepView(){return $('exportKeepView')?.checked!==false}
 function currentView(){const vp=$('viewport');return{transform:vp?.getAttribute('transform')||'',style:vp?.getAttribute('style')||''}}
 function applyView(root,view){const vp=root.querySelector?.('#viewport');if(!vp)return;if(keepView()){view.transform?vp.setAttribute('transform',view.transform):vp.removeAttribute('transform');view.style?vp.setAttribute('style',view.style):vp.removeAttribute('style')}else{vp.removeAttribute('transform');vp.removeAttribute('style')}}
@@ -49,7 +50,7 @@ async function inlineSvgImages(root){
     try{
       const data=await hrefToDataURL(href);
       if(data){image.setAttribute('href',data);image.setAttributeNS(XLINK,'xlink:href',data)}
-    }catch(err){failed.push({href,error:err?.message||String(err)})}
+    }catch(err){failed.push(failureRecord(image,href,err,i))}
   }
   return failed;
 }
@@ -87,7 +88,7 @@ function serializeSvg(node){return'<?xml version="1.0" encoding="UTF-8"?>\n'+new
 async function exportEmbeddedSvg(){
   const{clone,failed}=await buildStandaloneSvg();
   downloadText(serializeSvg(clone),'ban-do-viet-nam-tu-nhung-anh.svg','image/svg+xml;charset=utf-8');
-  if(failed.length)status(`Đã xuất SVG, nhưng ${failed.length} ảnh URL bị máy chủ chặn CORS nên vẫn phải giữ link ngoài. Hãy dùng ảnh từ máy để file độc lập 100%.`,true);
+  if(failed.length){window.__VN_EXPORT_IMAGE_REPORT?.show?.(failed,'xuất SVG');status(`Đã xuất SVG, nhưng ${failed.length} ảnh bị lỗi khi nhúng. Xem Báo cáo ảnh lỗi bên dưới để biết ID và URL.`,true);}
   else status('✓ Đã xuất SVG tự nhúng toàn bộ ảnh. File có thể mở độc lập mà không phụ thuộc URL ảnh.');
 }
 function targetScale(targetWidth){
@@ -143,7 +144,7 @@ async function exportVectorPdf(){
     status('Đang chuyển đường, chữ và shape sang PDF Vector…');
     await pdf.svg(clone,{x:0,y:0,width:w,height:h});
     pdf.save('ban-do-viet-nam-vector.pdf');
-    if(failed.length)status(`✓ Đã xuất PDF Vector. ${failed.length} ảnh URL bị CORS có thể không xuất được; dùng ảnh local để chắc chắn.`,true);
+    if(failed.length){window.__VN_EXPORT_IMAGE_REPORT?.show?.(failed,'xuất PDF Vector');status(`✓ Đã xuất PDF Vector nhưng ${failed.length} ảnh có thể bị thiếu. Xem Báo cáo ảnh lỗi bên dưới để biết ID và URL.`,true);}
     else status('✓ Đã xuất PDF Vector. Ranh giới, đường, shape và chữ giữ dạng vector; ảnh bitmap được nhúng ở độ phân giải gốc.');
   }finally{host.remove()}
 }
@@ -155,7 +156,7 @@ function setBusy(v){
   busy=v;
   ['exportPngMap','exportPng4K','exportPng8K','exportPdfMap','exportAll'].forEach(id=>{const b=$(id);if(b)b.disabled=v});
 }
-async function run(fn){if(busy)return;setBusy(true);try{await fn()}catch(err){console.error(err);status('Lỗi xuất file: '+(err?.message||err),true);alert('Không xuất được file: '+(err?.message||err))}finally{setBusy(false)}}
+async function run(fn){if(busy)return;setBusy(true);window.__VN_EXPORT_IMAGE_REPORT?.clear?.();try{await fn()}catch(err){console.error(err);status('Lỗi xuất file: '+(err?.message||err),true);alert('Không xuất được file: '+(err?.message||err))}finally{setBusy(false)}}
 function injectUi(){
   const pngOld=$('exportPngMap'),pdfOld=$('exportPdfMap'),svgOld=$('exportAll');
   if(!pngOld||!pdfOld||!svgOld){setTimeout(injectUi,150);return}

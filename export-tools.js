@@ -185,5 +185,5 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
 
 (()=>{
   if(window.__VN_ADVANCED_EXPORT||document.querySelector('script[data-vn-advanced-export]'))return;
-  const s=document.createElement('script');s.src='advanced-export-tools.js?v=1';s.dataset.vnAdvancedExport='1';s.onerror=()=>console.warn('Không tải được bộ xuất PNG 4K/8K, SVG nhúng ảnh và PDF Vector');document.body.appendChild(s);
+  const s=document.createElement('script');s.src='advanced-export-tools.js?v=2';s.dataset.vnAdvancedExport='1';s.onerror=()=>console.warn('Không tải được bộ xuất PNG 4K/8K, SVG nhúng ảnh và PDF Vector');document.body.appendChild(s);
 })();
