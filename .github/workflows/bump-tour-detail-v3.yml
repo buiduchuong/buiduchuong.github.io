@@ -1,0 +1,27 @@
+name: Bump tour detail cache
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bump-tour-detail-v3.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update loader version
+        run: |
+          sed -i 's/tour-detail-markers.js?v=2/tour-detail-markers.js?v=3/g' index.html
+          grep -q 'tour-detail-markers.js?v=3' index.html
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Load itinerary detail coordinate repair v3'
+          git push
