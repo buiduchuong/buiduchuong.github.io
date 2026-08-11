@@ -3,6 +3,7 @@
 const NS='http://www.w3.org/2000/svg';
 const STORE='vn-xuyen-viet-route-v1';
 const COORD_MARK='vn-xuyen-viet-route-fixed-33-v1';
+const POINT26_MARK='vn-xuyen-viet-route-point26-saky-v1';
 const ROUTE=[
  ['01','Hà Nội'],['37','Ninh Bình · Hà Nam cũ'],['42','Hà Tĩnh'],['44','Quảng Trị'],['46','Huế'],['48','Đà Nẵng'],
  ['52','Gia Lai'],['51','Quảng Ngãi'],['52','Gia Lai'],['66','Đắk Lắk'],['68','Lâm Đồng'],['79','TP.HCM'],
@@ -40,7 +41,7 @@ const FIXED_GEO={
  22:{name:'Nha Trang',lat:12.245000,lon:109.191667,note:'Ninh Chữ/Vĩnh Hy/Nha Trang; hiện cùng tỉnh Khánh Hòa mới'},
  23:{name:'Tuy Hòa',lat:13.086872,lon:109.308589,note:'Vũng Rô, Mũi Điện, Tuy Hòa; hiện thuộc Đắk Lắk mới'},
  24:{name:'Quy Nhơn',lat:13.769583,lon:109.231389,note:'Quay lại Quy Nhơn sau Gành Đá Đĩa'},
- 25:{name:'Đảo Lý Sơn',lat:15.380833,lon:109.117500,note:'Chặng Quảng Ngãi - Sa Kỳ - Lý Sơn'},
+ 25:{name:'Cảng Sa Kỳ · Quảng Ngãi',lat:15.214000,lon:108.910000,note:'Điểm tuyến chính trên đất liền; từ Sa Kỳ đoàn đi tàu cao tốc ra Đảo Lý Sơn'},
  26:{name:'Phố cổ Hội An',lat:15.877222,lon:108.329167,note:'Mẹ Thứ/Hội An/Cù Lao Chàm; hiện thuộc Đà Nẵng mới'},
  27:{name:'Huế',lat:16.456111,lon:107.576389,note:'Lăng Cô - Huế - Lăng Khải Định'},
  28:{name:'Đồng Hới · Nhật Lệ',lat:17.458000,lon:106.635900,note:'Nghĩa trang Trường Sơn - Đồng Hới - Động Thiên Đường'},
@@ -181,6 +182,7 @@ function syncPoint(){
 function fixPoint(idx){const fixed=FIXED_GEO[idx];if(!fixed||!data?.points?.[idx])return false;data.points[idx]=geoProject(fixed.lon,fixed.lat);save();render();syncPoint();return true}
 function fixAllPoints(showMessage=true){for(let i=0;i<ROUTE.length;i++)fixPoint(i);try{localStorage.setItem(COORD_MARK,'done')}catch{}selectedPoint=0;syncPoint();render();if(showMessage){const n=$('tourPointSelected');if(n)n.insertAdjacentHTML('beforeend','<br><b>✓ Đã sửa đúng tọa độ toàn bộ 33 điểm.</b>')}}
 function migrateAllPointsOnce(){let done=false;try{done=localStorage.getItem(COORD_MARK)==='done'}catch{}if(done)return;for(let i=0;i<ROUTE.length;i++){const f=FIXED_GEO[i];if(f&&data?.points?.[i])data.points[i]=geoProject(f.lon,f.lat)}save();try{localStorage.setItem(COORD_MARK,'done')}catch{}}
+function migratePoint26Once(){let done=false;try{done=localStorage.getItem(POINT26_MARK)==='done'}catch{}if(done)return;const f=FIXED_GEO[25];if(f&&data?.points?.[25]){data.points[25]=geoProject(f.lon,f.lat);save()}try{localStorage.setItem(POINT26_MARK,'done')}catch{}}
 function injectUI(){
  const controls=document.querySelector('.controls');if(!controls||$('tourRouteGroup'))return;
  const g=document.createElement('div');g.className='group';g.id='tourRouteGroup';
@@ -220,7 +222,7 @@ function initLayer(){
 function ready(){return ROUTE.every(([code])=>document.getElementById('province-'+code))}
 function init(){
  if(!ready()){setTimeout(init,250);return}
- buildBasePoints();load();migrateAllPointsOnce();initLayer();injectUI();render();
+ buildBasePoints();load();migrateAllPointsOnce();migratePoint26Once();initLayer();injectUI();render();
 }
 init();
 })();
