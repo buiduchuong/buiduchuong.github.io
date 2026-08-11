@@ -104,10 +104,13 @@
     </div>
 
     <div class="group">
-      <div class="group-title">Điểm ăn uống</div>
+      <div class="group-title">Thư viện icon</div>
       <div class="food-toolbar"><button id="addFoodItem" class="btn primary">＋ Thêm điểm</button><button id="duplicateFoodItem" class="btn">Nhân bản</button></div>
       <select id="foodSelect" size="4"></select>
-      <div id="foodCount" class="food-count">0 điểm ăn uống</div>
+      <label style="margin-top:9px"><b>Kích thước toàn bộ icon</b></label>
+      <div class="value-line"><input id="foodAllSizeRange" type="range" min="16" max="140" step="1" value="38"><input id="foodAllSize" type="number" min="16" max="140" step="1" value="38"></div>
+      <div class="tip">Kéo hoặc nhập một lần để đổi đồng loạt tất cả icon ăn uống, chùa/tâm linh, tàu/cano và icon điểm hành trình. Sau đó vẫn có thể chọn từng icon để chỉnh riêng.</div>
+      <div id="foodCount" class="food-count">0 icon trên bản đồ</div>
       <div id="foodEmpty" class="tip">Bấm “Thêm điểm” để tạo biểu tượng ăn uống mới.</div>
       <div id="foodEditor" style="display:none">
         <div class="row"><div><label>Kiểu biểu tượng</label><select id="foodType"><option value="restaurant">Nhà hàng</option><option value="coffee">Cà phê</option><option value="drink">Đồ uống</option></select></div><div><label>Vị trí nhanh</label><button id="centerFoodItem" class="btn" style="width:100%;margin-top:1px">Đưa vào giữa</button></div></div>
@@ -188,7 +191,7 @@
 (()=>{
   const ready=window.__VN_PERSIST_READY||Promise.resolve();
   const load=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error('Không tải được '+src));document.body.appendChild(s)});
-  ready.catch(err=>console.warn('Persistence init failed',err)).then(()=>load('editor.js?v=5')).then(()=>load('tour-route.js?v=2')).then(()=>load('flag-tools.js?v=3')).then(()=>load('food-tools.js?v=2')).then(()=>load('tour-detail-markers.js?v=1')).then(()=>load('export-tools.js?v=7')).catch(err=>{console.error(err);const n=document.getElementById('saveStatus');if(n)n.textContent='Lỗi tải editor: '+err.message});
+  ready.catch(err=>console.warn('Persistence init failed',err)).then(()=>load('editor.js?v=5')).then(()=>load('tour-route.js?v=2')).then(()=>load('flag-tools.js?v=3')).then(()=>load('food-tools.js?v=3')).then(()=>load('tour-detail-markers.js?v=2')).then(()=>load('export-tools.js?v=7')).catch(err=>{console.error(err);const n=document.getElementById('saveStatus');if(n)n.textContent='Lỗi tải editor: '+err.message});
 })();
 </script>
 </body>

@@ -13,7 +13,7 @@ const TYPE_META={
   temple:{label:'Chùa',bg:'#a9483d'},
   boat:{label:'Tàu / Cano',bg:'#2d77b8'}
 };
-const state={items:[],selected:null,show:true,dragEnabled:true,drag:null,saveTimer:null,paletteType:null};
+const state={items:[],selected:null,show:true,dragEnabled:true,drag:null,saveTimer:null,paletteType:null,bulkSize:38};
 const el=(tag,a={})=>{const n=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>n.setAttribute(k,v));return n};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const color=(v,d)=>/^#[0-9a-f]{6}$/i.test(v||'')?v:d;
@@ -22,8 +22,9 @@ function normalizeItem(f,i=0){
   const type=TYPES.includes(f?.type)?f.type:'restaurant',meta=TYPE_META[type];
   return{id:String(f?.id||uid()),x:Number.isFinite(Number(f?.x))?Number(f.x):700+i*14,y:Number.isFinite(Number(f?.y))?Number(f.y):500+i*10,size:clamp(Number(f?.size)||38,16,140),type,label:String(f?.label??meta.label).slice(0,60),showLabel:f?.showLabel!==false,bgColor:color(f?.bgColor,meta.bg),iconColor:color(f?.iconColor,'#ffffff'),textColor:color(f?.textColor,'#333333')}
 }
-function load(){try{const d=JSON.parse(localStorage.getItem(STORE)||'{}');state.items=Array.isArray(d.items)?d.items.map(normalizeItem):[];state.show=d.show!==false;state.dragEnabled=d.dragEnabled!==false}catch{state.items=[]}}
-function save(flush=false){try{localStorage.setItem(STORE,JSON.stringify({version:3,items:state.items,show:state.show,dragEnabled:state.dragEnabled,updatedAt:Date.now()}))}catch(e){console.warn('Không lưu được thư viện icon',e)}if(flush&&window.__VN_PERSIST?.flush)window.__VN_PERSIST.flush();else scheduleFlush()}
+function inferBulkSize(items){if(!items.length)return 38;const counts=new Map();items.forEach(f=>counts.set(f.size,(counts.get(f.size)||0)+1));let best=38,bestCount=-1;for(const [size,count] of counts){if(count>bestCount){best=size;bestCount=count}}return clamp(Number(best)||38,16,140)}
+function load(){try{const d=JSON.parse(localStorage.getItem(STORE)||'{}');state.items=Array.isArray(d.items)?d.items.map(normalizeItem):[];state.show=d.show!==false;state.dragEnabled=d.dragEnabled!==false;state.bulkSize=Number.isFinite(Number(d.bulkSize))?clamp(Number(d.bulkSize),16,140):inferBulkSize(state.items)}catch{state.items=[];state.bulkSize=38}}
+function save(flush=false){try{localStorage.setItem(STORE,JSON.stringify({version:4,items:state.items,show:state.show,dragEnabled:state.dragEnabled,bulkSize:state.bulkSize,updatedAt:Date.now()}))}catch(e){console.warn('Không lưu được thư viện icon',e)}if(flush&&window.__VN_PERSIST?.flush)window.__VN_PERSIST.flush();else scheduleFlush()}
 function scheduleFlush(){clearTimeout(state.saveTimer);state.saveTimer=setTimeout(()=>window.__VN_PERSIST?.flush?.(),500)}
 function selectedItem(){return state.items.find(f=>f.id===state.selected)||null}
 function worldFromClient(e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=viewport.getScreenCTM();if(!m)return[700,500];const p=pt.matrixTransform(m.inverse());return[p.x,p.y]}
@@ -82,16 +83,17 @@ function drawItem(f){
   g.addEventListener('pointerdown',startDrag);g.addEventListener('click',e=>{e.stopPropagation();select(f.id)});return g
 }
 function render(){layer.innerHTML='';layer.style.display=state.show?'':'none';if(state.show)state.items.forEach(f=>layer.appendChild(drawItem(f)));syncList();syncEditor()}
-function syncList(){const s=$('foodSelect');if(!s)return;const cur=state.selected;s.innerHTML='';state.items.forEach((f,i)=>{const o=document.createElement('option');o.value=f.id;o.textContent=`${i+1}. ${f.label||TYPE_META[f.type]?.label||'Icon'}`;s.appendChild(o)});if(cur)s.value=cur;const c=$('foodCount');if(c)c.textContent=`${state.items.length} icon trên bản đồ`;if($('showFoodItems'))$('showFoodItems').checked=state.show;if($('dragFoodItems'))$('dragFoodItems').checked=state.dragEnabled}
+function syncList(){const s=$('foodSelect');if(!s)return;const cur=state.selected;s.innerHTML='';state.items.forEach((f,i)=>{const o=document.createElement('option');o.value=f.id;o.textContent=`${i+1}. ${f.label||TYPE_META[f.type]?.label||'Icon'}`;s.appendChild(o)});if(cur)s.value=cur;const c=$('foodCount');if(c)c.textContent=`${state.items.length} icon trên bản đồ`;if($('showFoodItems'))$('showFoodItems').checked=state.show;if($('dragFoodItems'))$('dragFoodItems').checked=state.dragEnabled;if($('foodAllSize'))$('foodAllSize').value=state.bulkSize;if($('foodAllSizeRange'))$('foodAllSizeRange').value=state.bulkSize}
 function syncEditor(){const f=selectedItem(),empty=$('foodEmpty'),ed=$('foodEditor');if(empty)empty.style.display=f?'none':'';if(ed)ed.style.display=f?'':'none';if(!f)return;$('foodType').value=f.type;$('foodLabel').value=f.label;$('foodShowLabel').checked=f.showLabel;$('foodSize').value=f.size;$('foodSizeRange').value=f.size;$('foodBgColor').value=f.bgColor;$('foodIconColor').value=f.iconColor;$('foodTextColor').value=f.textColor;$('foodX').value=Math.round(f.x);$('foodY').value=Math.round(f.y)}
 function select(id){state.selected=id;render()}
-function addItemAt(type,x,y){type=TYPES.includes(type)?type:'restaurant';const meta=TYPE_META[type],f=normalizeItem({id:uid(),x,y,size:38,type,label:meta.label,showLabel:true,bgColor:meta.bg,iconColor:'#ffffff',textColor:'#333333'});state.items.push(f);state.selected=f.id;save();render();return f}
+function addItemAt(type,x,y){type=TYPES.includes(type)?type:'restaurant';const meta=TYPE_META[type],f=normalizeItem({id:uid(),x,y,size:state.bulkSize,type,label:meta.label,showLabel:true,bgColor:meta.bg,iconColor:'#ffffff',textColor:'#333333'});state.items.push(f);state.selected=f.id;save();render();return f}
 function addItem(type='restaurant'){const[x,y]=visibleCenter();return addItemAt(type,x,y)}
 function duplicateItem(){const f=selectedItem();if(!f)return;const n=normalizeItem({...f,id:uid(),x:f.x+20,y:f.y+20});state.items.push(n);state.selected=n.id;save();render()}
 function deleteItem(){const f=selectedItem();if(!f)return;state.items=state.items.filter(x=>x.id!==f.id);state.selected=state.items.at(-1)?.id||null;save(true);render()}
 function clearItems(){if(!state.items.length)return;if(!confirm('Xóa toàn bộ icon trên bản đồ?'))return;state.items=[];state.selected=null;save(true);render()}
 function centerItem(){const f=selectedItem();if(!f)return;const[x,y]=visibleCenter();f.x=x;f.y=y;save();render()}
 function setSize(v){const f=selectedItem();if(!f)return;f.size=clamp(Number(v)||38,16,140);$('foodSize').value=f.size;$('foodSizeRange').value=f.size;save();render()}
+function setAllSizes(v,flush=false){const size=clamp(Number(v)||state.bulkSize||38,16,140);state.bulkSize=size;state.items.forEach(f=>{f.size=size});if($('foodAllSize'))$('foodAllSize').value=size;if($('foodAllSizeRange'))$('foodAllSizeRange').value=size;save(flush);render();return size}
 function setPos(axis,v){const f=selectedItem(),n=Number(v);if(!f||!Number.isFinite(n))return;f[axis]=n;save();render()}
 function startDrag(e){e.preventDefault();e.stopPropagation();const id=e.currentTarget.dataset.id;state.selected=id;const f=selectedItem();render();if(!f||!state.dragEnabled)return;const p=worldFromClient(e);state.drag={id,dx:p[0]-f.x,dy:p[1]-f.y,pointerId:e.pointerId};try{svg.setPointerCapture(e.pointerId)}catch{}}
 function moveDrag(e){if(!state.drag)return;const f=state.items.find(x=>x.id===state.drag.id);if(!f)return;const p=worldFromClient(e);f.x=p[0]-state.drag.dx;f.y=p[1]-state.drag.dy;save(false);render()}
@@ -122,7 +124,7 @@ function mountPalette(){
 }
 mountPalette();load();
 $('addFoodItem')?.addEventListener('click',()=>addItem('restaurant'));$('duplicateFoodItem')?.addEventListener('click',duplicateItem);$('deleteFoodItem')?.addEventListener('click',deleteItem);$('clearFoodItems')?.addEventListener('click',clearItems);$('centerFoodItem')?.addEventListener('click',centerItem);
-$('foodSelect')?.addEventListener('change',e=>select(e.target.value));$('foodSize')?.addEventListener('input',e=>setSize(e.target.value));$('foodSizeRange')?.addEventListener('input',e=>setSize(e.target.value));
+$('foodSelect')?.addEventListener('change',e=>select(e.target.value));$('foodSize')?.addEventListener('input',e=>setSize(e.target.value));$('foodSizeRange')?.addEventListener('input',e=>setSize(e.target.value));$('foodAllSize')?.addEventListener('input',e=>setAllSizes(e.target.value,false));$('foodAllSizeRange')?.addEventListener('input',e=>setAllSizes(e.target.value,false));$('foodAllSize')?.addEventListener('change',e=>setAllSizes(e.target.value,true));$('foodAllSizeRange')?.addEventListener('change',e=>setAllSizes(e.target.value,true));
 $('foodType')?.addEventListener('change',e=>{const f=selectedItem();if(!f)return;f.type=TYPES.includes(e.target.value)?e.target.value:'restaurant';const meta=TYPE_META[f.type];if(meta&&(!f.bgColor||Object.values(TYPE_META).some(m=>m.bg===f.bgColor)))f.bgColor=meta.bg;save();render()});
 $('foodLabel')?.addEventListener('input',e=>{const f=selectedItem();if(!f)return;f.label=e.target.value.slice(0,60);save();render()});
 $('foodShowLabel')?.addEventListener('change',e=>{const f=selectedItem();if(!f)return;f.showLabel=e.target.checked;save();render()});
@@ -130,5 +132,5 @@ $('foodBgColor')?.addEventListener('input',e=>{const f=selectedItem();if(!f)retu
 $('foodX')?.addEventListener('input',e=>setPos('x',e.target.value));$('foodY')?.addEventListener('input',e=>setPos('y',e.target.value));$('showFoodItems')?.addEventListener('change',e=>{state.show=e.target.checked;save();render()});$('dragFoodItems')?.addEventListener('change',e=>{state.dragEnabled=e.target.checked;save();render()});
 svg.addEventListener('pointermove',moveDrag);svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',endDrag);window.addEventListener('pagehide',()=>save(true));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')save(true)});
 if(state.items.length)state.selected=state.items[0].id;render();save(false);
-window.__VN_FOOD={add:addItem,addAt:addItemAt,render,save,getAll:()=>JSON.parse(JSON.stringify(state.items))};
+window.__VN_FOOD={add:addItem,addAt:addItemAt,render,save,getAll:()=>JSON.parse(JSON.stringify(state.items)),setAllSizes,getBulkSize:()=>state.bulkSize};
 })();

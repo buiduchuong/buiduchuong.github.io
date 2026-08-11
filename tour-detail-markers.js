@@ -67,7 +67,7 @@ function install(){
     for(const cfg of ITEMS){
       if(current.some(x=>x?.id===cfg.id))continue;
       const f=api.addAt(cfg.type,cfg.x,cfg.y);if(!f)throw new Error('Không tạo được '+cfg.label);
-      Object.assign(f,{id:cfg.id,type:cfg.type,x:cfg.x,y:cfg.y,size:24,label:cfg.label,showLabel:false,bgColor:cfg.cat==='food'?'#f08a24':cfg.cat==='temple'?'#a9483d':'#2d77b8',iconColor:'#ffffff',textColor:'#333333'});
+      Object.assign(f,{id:cfg.id,type:cfg.type,x:cfg.x,y:cfg.y,size:typeof api.getBulkSize==='function'?api.getBulkSize():24,label:cfg.label,showLabel:false,bgColor:cfg.cat==='food'?'#f08a24':cfg.cat==='temple'?'#a9483d':'#2d77b8',iconColor:'#ffffff',textColor:'#333333'});
       current=api.getAll()||[];
     }
     api.save(true);api.render();
