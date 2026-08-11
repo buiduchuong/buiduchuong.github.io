@@ -1,0 +1,85 @@
+name: Fix all tour route points
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-all-tour-route-points.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch all 33 route coordinates
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p=Path('tour-route.js')
+          s=p.read_text(encoding='utf-8')
+
+          s=s.replace("const STORE='vn-xuyen-viet-route-v1';","const STORE='vn-xuyen-viet-route-v1';\nconst COORD_MARK='vn-xuyen-viet-route-fixed-33-v1';",1)
+
+          s=re.sub(r"// Tọa độ GPS chuẩn cho các điểm đầu hành trình\.[\s\S]*?const svg=document\.getElementById\('mapSvg'\),viewport=document\.getElementById\('viewport'\);", """// Tọa độ GPS đại diện cho toàn bộ 33 marker, đối chiếu theo chương trình 39 ngày.\n// Vì bản đồ dùng 34 tỉnh/thành sau sắp xếp, một số marker mang tên tỉnh mới nhưng đặt tại điểm dừng thực tế thuộc tỉnh cũ đã sáp nhập.\nconst GEO={minLon:101.7,maxLon:110.7,minLat:7.4,maxLat:23.7},PLOT={x:350,y:18,w:700,h:954};\nconst FIXED_GEO={\n  0:{name:'Nhà hát Lớn Hà Nội',lat:21.024167,lon:105.857778,note:'Điểm đón 05h30, ngày 1'},\n  1:{name:'Phủ Lý · Hà Nam cũ',lat:20.544180,lon:105.915420,note:'Điểm ăn sáng trên đường ngày 1; chương trình không ghi nhà hàng cụ thể'},\n  2:{name:'TP. Hà Tĩnh',lat:18.343056,lon:105.905833,note:'Điểm ăn trưa ngày 1'},\n  3:{name:'Đồng Hới · Nhật Lệ',lat:17.458000,lon:106.635900,note:'Điểm lưu trú Nhật Lệ/Đồng Hới và cửa ngõ Phong Nha; nay thuộc Quảng Trị mới'},\n  4:{name:'Huế',lat:16.456111,lon:107.576389,note:'Chùa Thiên Mụ, Đại Nội và các điểm tham quan Huế'},\n  5:{name:'Đà Nẵng',lat:16.067780,lon:108.220830,note:'Bà Nà, Sơn Trà, Mỹ Khê và các chặng Đà Nẵng'},\n  6:{name:'Quy Nhơn',lat:13.769583,lon:109.231389,note:'Quy Nhơn/Kỳ Co/Eo Gió; hiện thuộc Gia Lai mới'},\n  7:{name:'Măng Đen',lat:14.600278,lon:108.290833,note:'Măng Đen/Kon Tum; hiện thuộc Quảng Ngãi mới'},\n  8:{name:'Pleiku',lat:13.971519,lon:108.014673,note:'Pleiku, Biển Hồ và chặng Gia Lai'},\n  9:{name:'Buôn Ma Thuột',lat:12.667470,lon:108.037750,note:'Điểm lưu trú và tham quan Buôn Ma Thuột'},\n 10:{name:'Đà Lạt',lat:11.940000,lon:108.437500,note:'Các ngày tham quan Đà Lạt trước chặng Tà Đùng'},\n 11:{name:'TP. Hồ Chí Minh',lat:10.823020,lon:106.629650,note:'Điểm lưu trú TP.HCM trước chặng miền Tây'},\n 12:{name:'Mỹ Tho',lat:10.360000,lon:106.360000,note:'Mỹ Tho/Tiền Giang; hiện thuộc Đồng Tháp mới'},\n 13:{name:'Bến Tre',lat:10.241470,lon:106.375850,note:'Bến Tre/Cồn Phụng; hiện thuộc Vĩnh Long mới'},\n 14:{name:'Cần Thơ',lat:10.037220,lon:105.788330,note:'Nhà cổ Bình Thủy, Mỹ Khánh, Ninh Kiều, Cái Răng'},\n 15:{name:'Đất Mũi Cà Mau',lat:8.605920,lon:104.719690,note:'Điểm cực Nam và chặng Năm Căn'},\n 16:{name:'Châu Đốc',lat:10.700000,lon:105.116667,note:'Đại diện chặng An Giang sau Hà Tiên/Phú Quốc/Trà Sư trước khi sang Đồng Tháp'},\n 17:{name:'Sa Đéc',lat:10.310519,lon:105.739681,note:'Tràm Chim, Sa Đéc và chặng trở lại TP.HCM'},\n 18:{name:'TP. Hồ Chí Minh',lat:10.823020,lon:106.629650,note:'Điểm quay lại TP.HCM trước Tây Ninh'},\n 19:{name:'Núi Bà Đen',lat:11.364053,lon:106.180054,note:'Điểm chính của chặng Tây Ninh ngày 22'},\n 20:{name:'Vũng Tàu',lat:10.404167,lon:107.141667,note:'Chặng Vũng Tàu; hiện thuộc TP.HCM mới'},\n 21:{name:'Mũi Né',lat:10.981999,lon:108.251183,note:'Phan Thiết/Phú Quý/Mũi Né; hiện thuộc Lâm Đồng mới'},\n 22:{name:'Nha Trang',lat:12.245000,lon:109.191667,note:'Ninh Chữ/Vĩnh Hy/Nha Trang; hiện cùng tỉnh Khánh Hòa mới'},\n 23:{name:'Tuy Hòa',lat:13.086872,lon:109.308589,note:'Vũng Rô, Mũi Điện, Tuy Hòa; hiện thuộc Đắk Lắk mới'},\n 24:{name:'Quy Nhơn',lat:13.769583,lon:109.231389,note:'Quay lại Quy Nhơn sau Gành Đá Đĩa'},\n 25:{name:'Đảo Lý Sơn',lat:15.380833,lon:109.117500,note:'Chặng Quảng Ngãi - Sa Kỳ - Lý Sơn'},\n 26:{name:'Phố cổ Hội An',lat:15.877222,lon:108.329167,note:'Mẹ Thứ/Hội An/Cù Lao Chàm; hiện thuộc Đà Nẵng mới'},\n 27:{name:'Huế',lat:16.456111,lon:107.576389,note:'Lăng Cô - Huế - Lăng Khải Định'},\n 28:{name:'Đồng Hới · Nhật Lệ',lat:17.458000,lon:106.635900,note:'Nghĩa trang Trường Sơn - Đồng Hới - Động Thiên Đường'},\n 29:{name:'Ngã Ba Đồng Lộc',lat:18.401110,lon:105.739660,note:'Điểm dâng hương ngày 37'},\n 30:{name:'Làng Sen · Kim Liên',lat:18.671430,lon:105.558720,note:'Quê Bác ngày 38 trước khi đi Ninh Bình'},\n 31:{name:'Tràng An · Ninh Bình',lat:20.255694,lon:105.915611,note:'Hoa Lư/Tuyệt Tình Cốc/Tràng An/Hang Múa'},\n 32:{name:'Nhà hát Lớn Hà Nội',lat:21.024167,lon:105.857778,note:'Kết thúc hành trình, về lại điểm đón ban đầu'}\n};\nconst svg=document.getElementById('mapSvg'),viewport=document.getElementById('viewport');""", s, count=1)
+
+          old="function addTitle(node,text){const t=el('title');t.textContent=text;node.appendChild(t)}"
+          new=old+"\nfunction routeName(i){return FIXED_GEO[i]?.name||ROUTE[i]?.[1]||''}"
+          if old not in s: raise SystemExit('addTitle anchor missing')
+          s=s.replace(old,new,1)
+
+          s=s.replace("addTitle(p,`Chặng ${i+1}: ${ROUTE[i][1]} → ${ROUTE[i+1][1]}`);","addTitle(p,`Chặng ${i+1}: ${routeName(i)} → ${routeName(i+1)}`);",1)
+          s=s.replace("info.textContent=`Chặng ${selected+1}: ${ROUTE[selected][1]} → ${ROUTE[selected+1][1]}`;","info.textContent=`Chặng ${selected+1}: ${routeName(selected)} → ${routeName(selected+1)}`;",1)
+
+          old="if(selectedPoint<0){n.textContent='Chưa chọn marker số. Điểm 1–2 có tọa độ chuẩn riêng.';if(btn)btn.disabled=true;return}"
+          new="if(selectedPoint<0){n.textContent='Chưa chọn marker số. Cả 33 điểm đã có tọa độ đại diện theo chương trình.';if(btn)btn.disabled=true;return}"
+          if old not in s: raise SystemExit('syncPoint empty text missing')
+          s=s.replace(old,new,1)
+
+          old="function fixFirstTwo(){fixPoint(0);fixPoint(1);selectedPoint=1;syncPoint();render();const n=$('tourPointSelected');if(n)n.insertAdjacentHTML('beforeend','<br><b>✓ Đã sửa đúng tọa độ điểm 1–2.</b>')}"
+          new="function fixAllPoints(showMessage=true){for(let i=0;i<ROUTE.length;i++)fixPoint(i);try{localStorage.setItem(COORD_MARK,'done')}catch{}selectedPoint=0;syncPoint();render();if(showMessage){const n=$('tourPointSelected');if(n)n.insertAdjacentHTML('beforeend','<br><b>✓ Đã sửa đúng tọa độ toàn bộ 33 điểm.</b>')}}\nfunction migrateAllPointsOnce(){let done=false;try{done=localStorage.getItem(COORD_MARK)==='done'}catch{}if(done)return;for(let i=0;i<ROUTE.length;i++){const f=FIXED_GEO[i];if(f&&data?.points?.[i])data.points[i]=geoProject(f.lon,f.lat)}save();try{localStorage.setItem(COORD_MARK,'done')}catch{}}"
+          if old not in s: raise SystemExit('fixFirstTwo function missing')
+          s=s.replace(old,new,1)
+
+          s=s.replace("<div id=\"tourPointSelected\" class=\"mode-note\" style=\"margin-top:8px\">Chưa chọn marker số. Điểm 1–2 có tọa độ chuẩn riêng.</div>","<div id=\"tourPointSelected\" class=\"mode-note\" style=\"margin-top:8px\">Chưa chọn marker số. Cả 33 điểm đã có tọa độ đại diện theo chương trình.</div>",1)
+          s=s.replace("<div class=\"row\"><button id=\"tourFix12\" class=\"btn primary\">Sửa đúng tọa độ điểm 1–2</button><button id=\"tourFixSelected\" class=\"btn\" disabled>Sửa điểm đang chọn</button></div>","<div class=\"row\"><button id=\"tourFixAll\" class=\"btn primary\">Sửa đúng tọa độ toàn bộ 33 điểm</button><button id=\"tourFixSelected\" class=\"btn\" disabled>Sửa điểm đang chọn</button></div>",1)
+          s=re.sub(r"<div class=\"tip\"><b>Điểm 1:</b>[\s\S]*?</div>`;", "<div class=\"tip\">33 marker được đặt theo <b>điểm dừng thực tế đại diện</b> trong chương trình, không đặt ở tâm tỉnh. Với tỉnh mới sáp nhập, tên tỉnh trên bản đồ có thể khác tên địa danh cũ. Bấm marker để xem tên điểm + GPS; vẫn có thể kéo thủ công.</div>`;", s, count=1)
+
+          s=s.replace("$('tourFix12').addEventListener('click',fixFirstTwo);","$('tourFixAll').addEventListener('click',()=>fixAllPoints(true));",1)
+
+          old="buildBasePoints();load();initLayer();injectUI();render();"
+          new="buildBasePoints();load();migrateAllPointsOnce();initLayer();injectUI();render();"
+          if old not in s: raise SystemExit('init anchor missing')
+          s=s.replace(old,new,1)
+
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          if "tour-route.js?v=3" not in s: raise SystemExit('index route v3 missing')
+          p.write_text(s.replace("tour-route.js?v=3","tour-route.js?v=4",1),encoding='utf-8')
+
+      - name: Validate
+        run: |
+          node --check tour-route.js
+          grep -q "FIXED_GEO" tour-route.js
+          grep -q "tourFixAll" tour-route.js
+          grep -q "migrateAllPointsOnce" tour-route.js
+          grep -q "32:{name:'Nhà hát Lớn Hà Nội'" tour-route.js
+          grep -q "tour-route.js?v=4" index.html
+
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tour-route.js index.html
+          git commit -m 'Fix coordinates for all 33 tour route points'
+          git push
