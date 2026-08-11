@@ -19,8 +19,8 @@ jobs:
           fetch-depth: 0
 
       - name: Add attraction icon type and bump cache
-        shell: python
         run: |
+          python - <<'PY'
           from pathlib import Path
           import re
 
@@ -52,12 +52,10 @@ jobs:
           if old not in s: raise SystemExit('drawType exact line missing')
           s=s.replace(old,new,1)
 
-          # Add a simple palette symbol before the existing boat branch.
-          m=re.search(r"(\s*)if\(type==='boat'\)return",s)
-          if not m: raise SystemExit('palette boat branch missing')
-          indent=m.group(1)
-          insert=indent+"if(type==='attraction')return `<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path ${common} d=\"M5 23l7-10 4 5 4-6 7 11M4 24h24\"/><circle cx=\"22\" cy=\"8\" r=\"2.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"/></svg>`;"+indent+"if(type==='boat')return"
-          s=s[:m.start()]+insert+s[m.end():]
+          boat=" if(type==='boat')return `<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path ${common} d=\"M5 17h22l-4 7H9l-4-7zM11 17V9h8l3 8M5 27q4-3 8 0t8 0t8 0\"/></svg>`;"
+          attraction_palette=" if(type==='attraction')return `<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path ${common} d=\"M5 23l7-10 4 5 4-6 7 11M4 24h24\"/><circle cx=\"22\" cy=\"8\" r=\"2.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"/></svg>`;\n"
+          if boat not in s: raise SystemExit('palette boat exact line missing')
+          s=s.replace(boat,attraction_palette+boat,1)
 
           p.write_text(s,encoding='utf-8')
 
@@ -68,6 +66,7 @@ jobs:
           s=s.replace("food-tools.js?v=3","food-tools.js?v=4",1)
           s=s.replace("tour-detail-markers.js?v=2","tour-detail-markers.js?v=3",1)
           p.write_text(s,encoding='utf-8')
+          PY
 
       - name: Validate
         run: |
