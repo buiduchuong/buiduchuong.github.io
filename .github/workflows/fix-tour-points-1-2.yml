@@ -1,0 +1,104 @@
+name: Fix tour route points 1-2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-tour-points-1-2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch tour route coordinates and controls
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p=Path('tour-route.js')
+          s=p.read_text(encoding='utf-8')
+
+          old="['01','Hà Nội'],['37','Ninh Bình'],['42','Hà Tĩnh']"
+          new="['01','Hà Nội'],['37','Ninh Bình · Hà Nam cũ'],['42','Hà Tĩnh']"
+          if old not in s: raise SystemExit('ROUTE start anchor missing')
+          s=s.replace(old,new,1)
+
+          anchor="];\nconst svg=document.getElementById('mapSvg'),viewport=document.getElementById('viewport');"
+          insert="];\n// Tọa độ GPS chuẩn cho các điểm đầu hành trình. Điểm 2 dùng trung tâm Phủ Lý vì chương trình chỉ ghi ăn sáng tại Hà Nam, không nêu nhà hàng cụ thể.\nconst GEO={minLon:101.7,maxLon:110.7,minLat:7.4,maxLat:23.7},PLOT={x:350,y:18,w:700,h:954};\nconst FIXED_GEO={\n  0:{name:'Nhà hát Lớn Hà Nội',lat:21.024167,lon:105.857778,note:'Điểm đón 05h30 theo chương trình'},\n  1:{name:'Phủ Lý · Hà Nam cũ',lat:20.54418,lon:105.91542,note:'Đại diện điểm ăn sáng tại Hà Nam; chương trình không ghi nhà hàng cụ thể'}\n};\nconst svg=document.getElementById('mapSvg'),viewport=document.getElementById('viewport');"
+          if anchor not in s: raise SystemExit('fixed geo insert anchor missing')
+          s=s.replace(anchor,insert,1)
+
+          old="let layer=null,selected=-1,drag=null,basePoints=[];"
+          new="let layer=null,selected=-1,selectedPoint=-1,drag=null,basePoints=[];"
+          if old not in s: raise SystemExit('state anchor missing')
+          s=s.replace(old,new,1)
+
+          old="function occurrenceOffsets(){"
+          new="function geoProject(lon,lat){return{x:PLOT.x+(lon-GEO.minLon)/(GEO.maxLon-GEO.minLon)*PLOT.w,y:PLOT.y+(GEO.maxLat-lat)/(GEO.maxLat-GEO.minLat)*PLOT.h}}\nfunction occurrenceOffsets(){"
+          if old not in s: raise SystemExit('geoProject anchor missing')
+          s=s.replace(old,new,1)
+
+          old="function buildBasePoints(){\n const offs=occurrenceOffsets();\n basePoints=ROUTE.map(([code],i)=>{const p=provinceCenter(code);return{x:p[0]+offs[i][0],y:p[1]+offs[i][1]}});\n}"
+          new="function buildBasePoints(){\n const offs=occurrenceOffsets();\n basePoints=ROUTE.map(([code],i)=>{const p=provinceCenter(code);return{x:p[0]+offs[i][0],y:p[1]+offs[i][1]}});\n Object.entries(FIXED_GEO).forEach(([idx,g])=>{const i=Number(idx);if(i>=0&&i<basePoints.length)basePoints[i]=geoProject(g.lon,g.lat)});\n}"
+          if old not in s: raise SystemExit('buildBasePoints anchor missing')
+          s=s.replace(old,new,1)
+
+          old="const outer=el('circle',{r:8.2,fill:'#fffdf8',stroke:data.color,'stroke-width':2,'vector-effect':'non-scaling-stroke'});"
+          new="const outer=el('circle',{r:selectedPoint===i?9.4:8.2,fill:'#fffdf8',stroke:data.color,'stroke-width':selectedPoint===i?2.8:2,'vector-effect':'non-scaling-stroke'});"
+          if old not in s: raise SystemExit('marker outer anchor missing')
+          s=s.replace(old,new,1)
+
+          old="addTitle(g,`${i+1}. ${ROUTE[i][1]}`);\n  g.addEventListener('pointerdown',startPointDrag);"
+          new="const fixed=FIXED_GEO[i];addTitle(g,`${i+1}. ${ROUTE[i][1]}${fixed?' · '+fixed.name:''}`);\n  g.addEventListener('pointerdown',startPointDrag);\n  g.addEventListener('click',ev=>{ev.stopPropagation();selectedPoint=i;syncPoint();render()});"
+          if old not in s: raise SystemExit('marker title/listener anchor missing')
+          s=s.replace(old,new,1)
+
+          old="const idx=Number(ev.currentTarget.dataset.tourPoint),p=localPoint(ev),q=data.points[idx];\n drag={idx,dx:p[0]-q.x,dy:p[1]-q.y,pointerId:ev.pointerId};"
+          new="const idx=Number(ev.currentTarget.dataset.tourPoint),p=localPoint(ev),q=data.points[idx];\n selectedPoint=idx;syncPoint();\n drag={idx,dx:p[0]-q.x,dy:p[1]-q.y,pointerId:ev.pointerId};"
+          if old not in s: raise SystemExit('drag select anchor missing')
+          s=s.replace(old,new,1)
+
+          anchor="function setBend(v){if(selected<0)return;v=clamp(Number(v)||0,-160,160);data.bends[selected]=v;$('tourBend').value=v;$('tourBendNumber').value=v;render();save()}"
+          extra=anchor+"\nfunction syncPoint(){\n const n=$('tourPointSelected'),btn=$('tourFixSelected');if(!n)return;\n if(selectedPoint<0){n.textContent='Chưa chọn marker số. Điểm 1–2 có tọa độ chuẩn riêng.';if(btn)btn.disabled=true;return}\n const p=data.points[selectedPoint],fixed=FIXED_GEO[selectedPoint];\n if(fixed){n.innerHTML=`<b>Điểm ${selectedPoint+1}: ${ROUTE[selectedPoint][1]}</b><br>${fixed.name}<br>GPS: ${fixed.lat.toFixed(6)}, ${fixed.lon.toFixed(6)}<br>SVG: ${p.x.toFixed(1)}, ${p.y.toFixed(1)}<br><span style=\"font-size:11px\">${fixed.note}</span>`;if(btn)btn.disabled=false}\n else{n.innerHTML=`<b>Điểm ${selectedPoint+1}: ${ROUTE[selectedPoint][1]}</b><br>SVG hiện tại: ${p.x.toFixed(1)}, ${p.y.toFixed(1)}<br><span style=\"font-size:11px\">Chưa khai báo GPS chuẩn cho điểm này.</span>`;if(btn)btn.disabled=true}\n}\nfunction fixPoint(idx){const fixed=FIXED_GEO[idx];if(!fixed||!data?.points?.[idx])return false;data.points[idx]=geoProject(fixed.lon,fixed.lat);save();render();syncPoint();return true}\nfunction fixFirstTwo(){fixPoint(0);fixPoint(1);selectedPoint=1;syncPoint();render();const n=$('tourPointSelected');if(n)n.insertAdjacentHTML('beforeend','<br><b>✓ Đã sửa đúng tọa độ điểm 1–2.</b>')}"
+          if anchor not in s: raise SystemExit('setBend anchor missing')
+          s=s.replace(anchor,extra,1)
+
+          old="<div class=\"row\"><button id=\"tourStraight\" class=\"btn\">Làm thẳng chặng</button><button id=\"tourReset\" class=\"btn\">Khôi phục tuyến</button></div>\n <div class=\"tip\">Bấm vào đoạn tuyến để chỉnh độ cong. <b>Kéo marker số</b> để đổi vị trí từng điểm. Tuyến tự lưu trên trình duyệt.</div>`;"
+          new="<div class=\"row\"><button id=\"tourStraight\" class=\"btn\">Làm thẳng chặng</button><button id=\"tourReset\" class=\"btn\">Khôi phục tuyến</button></div>\n <div id=\"tourPointSelected\" class=\"mode-note\" style=\"margin-top:8px\">Chưa chọn marker số. Điểm 1–2 có tọa độ chuẩn riêng.</div>\n <div class=\"row\"><button id=\"tourFix12\" class=\"btn primary\">Sửa đúng tọa độ điểm 1–2</button><button id=\"tourFixSelected\" class=\"btn\" disabled>Sửa điểm đang chọn</button></div>\n <div class=\"tip\"><b>Điểm 1:</b> Nhà hát Lớn Hà Nội. <b>Điểm 2:</b> khu vực Phủ Lý (Hà Nam cũ, nay thuộc Ninh Bình). Bấm marker để xem GPS/SVG. Kéo marker vẫn được và tuyến tự lưu.</div>`;"
+          if old not in s: raise SystemExit('UI block anchor missing')
+          s=s.replace(old,new,1)
+
+          old="$('tourStraight').addEventListener('click',()=>{if(selected>=0)setBend(0)});\n $('tourReset').addEventListener('click',()=>{if(!confirm('Khôi phục toàn bộ cung đường Xuyên Việt về vị trí và độ cong mặc định?'))return;data=defaultData();selected=-1;save();syncSegment();$('showTourRoute').checked=data.show;$('showTourNumbers').checked=data.showNumbers;$('showTourArrows').checked=data.showArrows;$('tourColor').value=data.color;$('tourWidth').value=data.width;render()});\n syncSegment();"
+          new="$('tourStraight').addEventListener('click',()=>{if(selected>=0)setBend(0)});\n $('tourFix12').addEventListener('click',fixFirstTwo);\n $('tourFixSelected').addEventListener('click',()=>{if(selectedPoint>=0)fixPoint(selectedPoint)});\n $('tourReset').addEventListener('click',()=>{if(!confirm('Khôi phục toàn bộ cung đường Xuyên Việt về vị trí và độ cong mặc định?'))return;data=defaultData();selected=-1;selectedPoint=-1;save();syncSegment();syncPoint();$('showTourRoute').checked=data.show;$('showTourNumbers').checked=data.showNumbers;$('showTourArrows').checked=data.showArrows;$('tourColor').value=data.color;$('tourWidth').value=data.width;render()});\n syncSegment();syncPoint();"
+          if old not in s: raise SystemExit('listeners anchor missing')
+          s=s.replace(old,new,1)
+
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          if "tour-route.js?v=2" not in s: raise SystemExit('index tour route v2 loader missing')
+          p.write_text(s.replace("tour-route.js?v=2","tour-route.js?v=3",1),encoding='utf-8')
+
+      - name: Validate JavaScript and cache loader
+        run: |
+          node --check tour-route.js
+          grep -q "FIXED_GEO" tour-route.js
+          grep -q "tourFix12" tour-route.js
+          grep -q "tour-route.js?v=3" index.html
+
+      - name: Commit route coordinate fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tour-route.js index.html
+          git commit -m 'Fix tour route points 1 and 2 coordinates'
+          git push
