@@ -1,0 +1,88 @@
+name: Patch attraction icons
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-attraction-icons.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add attraction icon type and bump cache
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p=Path('food-tools.js')
+          s=p.read_text(encoding='utf-8')
+
+          old="const TYPES=['restaurant','coffee','drink','temple','boat'];"
+          new="const TYPES=['restaurant','coffee','drink','temple','boat','attraction'];"
+          if old not in s: raise SystemExit('TYPES anchor missing')
+          s=s.replace(old,new,1)
+
+          old="  boat:{label:'Tàu / Cano',bg:'#2d77b8'}\n};"
+          new="  boat:{label:'Tàu / Cano',bg:'#2d77b8'},\n  attraction:{label:'Điểm tham quan',bg:'#5f8a46'}\n};"
+          if old not in s: raise SystemExit('TYPE_META boat anchor missing')
+          s=s.replace(old,new,1)
+
+          anchor="function drawType(g,type,s,c,w){"
+          attraction="""function drawAttraction(g,s,c,w){
+  path(g,{d:`M${-s*.34},${s*.23} L${-s*.09},${-s*.12} L${s*.04},${s*.04} L${s*.18},${-s*.17} L${s*.36},${s*.23}`,stroke:c,'stroke-width':w});
+  line(g,{x1:-s*.36,y1:s*.24,x2:s*.38,y2:s*.24,stroke:c,'stroke-width':w});
+  const sun=el('circle',{cx:s*.20,cy:-s*.28,r:s*.075,fill:'none',stroke:c,'stroke-width':w*.8,class:'food-icon-line'});g.appendChild(sun);
+}
+"""
+          if anchor not in s: raise SystemExit('drawType anchor missing')
+          s=s.replace(anchor,attraction+anchor,1)
+
+          old="function drawType(g,type,s,c,w){if(type==='coffee')drawCoffee(g,s,c,w);else if(type==='drink')drawDrink(g,s,c,w);else if(type==='temple')drawTemple(g,s,c,w);else if(type==='boat')drawBoat(g,s,c,w);else drawRestaurant(g,s,c,w)}"
+          new="function drawType(g,type,s,c,w){if(type==='coffee')drawCoffee(g,s,c,w);else if(type==='drink')drawDrink(g,s,c,w);else if(type==='temple')drawTemple(g,s,c,w);else if(type==='boat')drawBoat(g,s,c,w);else if(type==='attraction')drawAttraction(g,s,c,w);else drawRestaurant(g,s,c,w)}"
+          if old not in s: raise SystemExit('drawType exact line missing')
+          s=s.replace(old,new,1)
+
+          # Add a simple palette symbol before the existing boat branch.
+          m=re.search(r"(\s*)if\(type==='boat'\)return",s)
+          if not m: raise SystemExit('palette boat branch missing')
+          indent=m.group(1)
+          insert=indent+"if(type==='attraction')return `<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><path ${common} d=\"M5 23l7-10 4 5 4-6 7 11M4 24h24\"/><circle cx=\"22\" cy=\"8\" r=\"2.5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"/></svg>`;"+indent+"if(type==='boat')return"
+          s=s[:m.start()]+insert+s[m.end():]
+
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          if "food-tools.js?v=3" not in s: raise SystemExit('food-tools v3 loader missing')
+          if "tour-detail-markers.js?v=2" not in s: raise SystemExit('tour detail v2 loader missing')
+          s=s.replace("food-tools.js?v=3","food-tools.js?v=4",1)
+          s=s.replace("tour-detail-markers.js?v=2","tour-detail-markers.js?v=3",1)
+          p.write_text(s,encoding='utf-8')
+
+      - name: Validate
+        run: |
+          node --check food-tools.js
+          node --check tour-detail-markers.js
+          grep -q "attraction:{label:'Điểm tham quan'" food-tools.js
+          grep -q "tour-detail-visit-hangmua" tour-detail-markers.js
+          grep -q "fixTourDetailPositions" tour-detail-markers.js
+          grep -q "food-tools.js?v=4" index.html
+          grep -q "tour-detail-markers.js?v=3" index.html
+
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add food-tools.js index.html
+          git commit -m 'Add attraction icons and detail coordinate repair'
+          git push
