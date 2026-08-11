@@ -3,16 +3,22 @@
 const NS='http://www.w3.org/2000/svg';
 const STORE='vn-xuyen-viet-route-v1';
 const ROUTE=[
- ['01','Hà Nội'],['37','Ninh Bình'],['42','Hà Tĩnh'],['44','Quảng Trị'],['46','Huế'],['48','Đà Nẵng'],
+ ['01','Hà Nội'],['37','Ninh Bình · Hà Nam cũ'],['42','Hà Tĩnh'],['44','Quảng Trị'],['46','Huế'],['48','Đà Nẵng'],
  ['52','Gia Lai'],['51','Quảng Ngãi'],['52','Gia Lai'],['66','Đắk Lắk'],['68','Lâm Đồng'],['79','TP.HCM'],
  ['82','Đồng Tháp'],['86','Vĩnh Long'],['92','Cần Thơ'],['96','Cà Mau'],['91','An Giang'],['82','Đồng Tháp'],
  ['79','TP.HCM'],['80','Tây Ninh'],['79','TP.HCM'],['68','Lâm Đồng'],['56','Khánh Hòa'],['66','Đắk Lắk'],
  ['52','Gia Lai'],['51','Quảng Ngãi'],['48','Đà Nẵng'],['46','Huế'],['44','Quảng Trị'],['42','Hà Tĩnh'],
  ['40','Nghệ An'],['37','Ninh Bình'],['01','Hà Nội']
 ];
+// Tọa độ GPS chuẩn cho các điểm đầu hành trình. Điểm 2 dùng trung tâm Phủ Lý vì chương trình chỉ ghi ăn sáng tại Hà Nam, không nêu nhà hàng cụ thể.
+const GEO={minLon:101.7,maxLon:110.7,minLat:7.4,maxLat:23.7},PLOT={x:350,y:18,w:700,h:954};
+const FIXED_GEO={
+  0:{name:'Nhà hát Lớn Hà Nội',lat:21.024167,lon:105.857778,note:'Điểm đón 05h30 theo chương trình'},
+  1:{name:'Phủ Lý · Hà Nam cũ',lat:20.54418,lon:105.91542,note:'Đại diện điểm ăn sáng tại Hà Nam; chương trình không ghi nhà hàng cụ thể'}
+};
 const svg=document.getElementById('mapSvg'),viewport=document.getElementById('viewport');
 if(!svg||!viewport)return;
-let layer=null,selected=-1,drag=null,basePoints=[];
+let layer=null,selected=-1,selectedPoint=-1,drag=null,basePoints=[];
 let data=null;
 const $=id=>document.getElementById(id);
 const el=(tag,a={})=>{const n=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>n.setAttribute(k,v));return n};
@@ -23,6 +29,7 @@ function provinceCenter(code){
  const b=p.getBBox();
  return[b.x+b.width/2,b.y+b.height/2];
 }
+function geoProject(lon,lat){return{x:PLOT.x+(lon-GEO.minLon)/(GEO.maxLon-GEO.minLon)*PLOT.w,y:PLOT.y+(GEO.maxLat-lat)/(GEO.maxLat-GEO.minLat)*PLOT.h}}
 function occurrenceOffsets(){
  const total={};ROUTE.forEach(([c])=>total[c]=(total[c]||0)+1);
  const seen={};
@@ -37,6 +44,7 @@ function occurrenceOffsets(){
 function buildBasePoints(){
  const offs=occurrenceOffsets();
  basePoints=ROUTE.map(([code],i)=>{const p=provinceCenter(code);return{x:p[0]+offs[i][0],y:p[1]+offs[i][1]}});
+ Object.entries(FIXED_GEO).forEach(([idx,g])=>{const i=Number(idx);if(i>=0&&i<basePoints.length)basePoints[i]=geoProject(g.lon,g.lat)});
 }
 function defaultData(){
  const bends=Array.from({length:ROUTE.length-1},(_,i)=>{
@@ -87,15 +95,16 @@ function render(){
  }
  data.points.forEach((p,i)=>{
   const g=el('g',{transform:`translate(${p.x} ${p.y})`,'data-tour-point':i});g.style.cursor='move';
-  const outer=el('circle',{r:8.2,fill:'#fffdf8',stroke:data.color,'stroke-width':2,'vector-effect':'non-scaling-stroke'});
+  const outer=el('circle',{r:selectedPoint===i?9.4:8.2,fill:'#fffdf8',stroke:data.color,'stroke-width':selectedPoint===i?2.8:2,'vector-effect':'non-scaling-stroke'});
   g.appendChild(outer);
   if(data.showNumbers){
    const txt=el('text',{x:0,y:2.3,'text-anchor':'middle','font-family':'Roboto,Arial,sans-serif','font-size':6.6,'font-weight':900,fill:data.color,'pointer-events':'none'});txt.textContent=String(i+1);g.appendChild(txt);
   }else{
    g.appendChild(el('circle',{r:3,fill:data.color,'pointer-events':'none'}));
   }
-  addTitle(g,`${i+1}. ${ROUTE[i][1]}`);
+  const fixed=FIXED_GEO[i];addTitle(g,`${i+1}. ${ROUTE[i][1]}${fixed?' · '+fixed.name:''}`);
   g.addEventListener('pointerdown',startPointDrag);
+  g.addEventListener('click',ev=>{ev.stopPropagation();selectedPoint=i;syncPoint();render()});
   marks.appendChild(g);
  });
  layer.append(segments,marks);
@@ -108,6 +117,7 @@ function localPoint(ev){
 function startPointDrag(ev){
  ev.preventDefault();ev.stopPropagation();
  const idx=Number(ev.currentTarget.dataset.tourPoint),p=localPoint(ev),q=data.points[idx];
+ selectedPoint=idx;syncPoint();
  drag={idx,dx:p[0]-q.x,dy:p[1]-q.y,pointerId:ev.pointerId};
  window.addEventListener('pointermove',movePoint,true);window.addEventListener('pointerup',endPoint,true);window.addEventListener('pointercancel',endPoint,true);
 }
@@ -127,6 +137,15 @@ function syncSegment(){
  $('tourBend').value=data.bends[selected]||0;$('tourBendNumber').value=data.bends[selected]||0;
 }
 function setBend(v){if(selected<0)return;v=clamp(Number(v)||0,-160,160);data.bends[selected]=v;$('tourBend').value=v;$('tourBendNumber').value=v;render();save()}
+function syncPoint(){
+ const n=$('tourPointSelected'),btn=$('tourFixSelected');if(!n)return;
+ if(selectedPoint<0){n.textContent='Chưa chọn marker số. Điểm 1–2 có tọa độ chuẩn riêng.';if(btn)btn.disabled=true;return}
+ const p=data.points[selectedPoint],fixed=FIXED_GEO[selectedPoint];
+ if(fixed){n.innerHTML=`<b>Điểm ${selectedPoint+1}: ${ROUTE[selectedPoint][1]}</b><br>${fixed.name}<br>GPS: ${fixed.lat.toFixed(6)}, ${fixed.lon.toFixed(6)}<br>SVG: ${p.x.toFixed(1)}, ${p.y.toFixed(1)}<br><span style="font-size:11px">${fixed.note}</span>`;if(btn)btn.disabled=false}
+ else{n.innerHTML=`<b>Điểm ${selectedPoint+1}: ${ROUTE[selectedPoint][1]}</b><br>SVG hiện tại: ${p.x.toFixed(1)}, ${p.y.toFixed(1)}<br><span style="font-size:11px">Chưa khai báo GPS chuẩn cho điểm này.</span>`;if(btn)btn.disabled=true}
+}
+function fixPoint(idx){const fixed=FIXED_GEO[idx];if(!fixed||!data?.points?.[idx])return false;data.points[idx]=geoProject(fixed.lon,fixed.lat);save();render();syncPoint();return true}
+function fixFirstTwo(){fixPoint(0);fixPoint(1);selectedPoint=1;syncPoint();render();const n=$('tourPointSelected');if(n)n.insertAdjacentHTML('beforeend','<br><b>✓ Đã sửa đúng tọa độ điểm 1–2.</b>')}
 function injectUI(){
  const controls=document.querySelector('.controls');if(!controls||$('tourRouteGroup'))return;
  const g=document.createElement('div');g.className='group';g.id='tourRouteGroup';
@@ -139,7 +158,9 @@ function injectUI(){
  <label style="margin-top:8px">Độ cong chặng đang chọn</label>
  <div class="value-line"><input id="tourBend" type="range" min="-160" max="160" step="1" value="0" disabled><input id="tourBendNumber" type="number" min="-160" max="160" step="1" value="0" disabled></div>
  <div class="row"><button id="tourStraight" class="btn">Làm thẳng chặng</button><button id="tourReset" class="btn">Khôi phục tuyến</button></div>
- <div class="tip">Bấm vào đoạn tuyến để chỉnh độ cong. <b>Kéo marker số</b> để đổi vị trí từng điểm. Tuyến tự lưu trên trình duyệt.</div>`;
+ <div id="tourPointSelected" class="mode-note" style="margin-top:8px">Chưa chọn marker số. Điểm 1–2 có tọa độ chuẩn riêng.</div>
+ <div class="row"><button id="tourFix12" class="btn primary">Sửa đúng tọa độ điểm 1–2</button><button id="tourFixSelected" class="btn" disabled>Sửa điểm đang chọn</button></div>
+ <div class="tip"><b>Điểm 1:</b> Nhà hát Lớn Hà Nội. <b>Điểm 2:</b> khu vực Phủ Lý (Hà Nam cũ, nay thuộc Ninh Bình). Bấm marker để xem GPS/SVG. Kéo marker vẫn được và tuyến tự lưu.</div>`;
  const displayGroup=[...controls.children].find(x=>x.querySelector?.('.group-title')?.textContent.includes('Hiển thị'));
  if(displayGroup)controls.insertBefore(g,displayGroup);else controls.appendChild(g);
  $('showTourRoute').checked=data.show;$('showTourNumbers').checked=data.showNumbers;$('showTourArrows').checked=data.showArrows;$('tourColor').value=data.color;$('tourWidth').value=data.width;
@@ -150,8 +171,10 @@ function injectUI(){
  $('tourWidth').addEventListener('input',e=>{data.width=clamp(Number(e.target.value)||2.4,.8,8);render();save()});
  $('tourBend').addEventListener('input',e=>setBend(e.target.value));$('tourBendNumber').addEventListener('input',e=>setBend(e.target.value));
  $('tourStraight').addEventListener('click',()=>{if(selected>=0)setBend(0)});
- $('tourReset').addEventListener('click',()=>{if(!confirm('Khôi phục toàn bộ cung đường Xuyên Việt về vị trí và độ cong mặc định?'))return;data=defaultData();selected=-1;save();syncSegment();$('showTourRoute').checked=data.show;$('showTourNumbers').checked=data.showNumbers;$('showTourArrows').checked=data.showArrows;$('tourColor').value=data.color;$('tourWidth').value=data.width;render()});
- syncSegment();
+ $('tourFix12').addEventListener('click',fixFirstTwo);
+ $('tourFixSelected').addEventListener('click',()=>{if(selectedPoint>=0)fixPoint(selectedPoint)});
+ $('tourReset').addEventListener('click',()=>{if(!confirm('Khôi phục toàn bộ cung đường Xuyên Việt về vị trí và độ cong mặc định?'))return;data=defaultData();selected=-1;selectedPoint=-1;save();syncSegment();syncPoint();$('showTourRoute').checked=data.show;$('showTourNumbers').checked=data.showNumbers;$('showTourArrows').checked=data.showArrows;$('tourColor').value=data.color;$('tourWidth').value=data.width;render()});
+ syncSegment();syncPoint();
 }
 function initLayer(){
  if(layer)return;
