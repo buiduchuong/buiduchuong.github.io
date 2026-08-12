@@ -1,0 +1,34 @@
+name: Patch neighbor admin regions cache
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-neighbor-admin-regions-cache.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply patch
+        run: python tools/patch-neighbor-admin-regions-cache.py
+      - name: Validate
+        run: |
+          node --check neighbor-country-outlines.js
+          grep -q "neighbor-country-outlines.js?v=2" index.html
+          grep -q "neighbor-admin-region" neighbor-country-outlines.js
+          grep -q "fill:'none'" neighbor-country-outlines.js
+          ! grep -q "neighbor-country-name" neighbor-country-outlines.js
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Render neighboring administrative region boundaries'
+          git push
