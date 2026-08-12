@@ -16,9 +16,9 @@ const DRAW_BOUNDS={minLon:99.2,maxLon:111.4,minLat:7.0,maxLat:25.2};
 
 // geoBoundaries ADM1 simplified: các tỉnh/vùng cấp 1 của nước lân cận.
 const SOURCES=[
-  {id:'CHN',name:'Trung Quốc',url:'https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/CHN/ADM1/geoBoundaries-CHN-ADM1_simplified.geojson'},
-  {id:'LAO',name:'Lào',url:'https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/LAO/ADM1/geoBoundaries-LAO-ADM1_simplified.geojson'},
-  {id:'KHM',name:'Campuchia',url:'https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/KHM/ADM1/geoBoundaries-KHM-ADM1_simplified.geojson'}
+  {id:'CHN',name:'Trung Quốc',url:'map-assets/neighbors/CHN-ADM1.geojson'},
+  {id:'LAO',name:'Lào',url:'map-assets/neighbors/LAO-ADM1.geojson'},
+  {id:'KHM',name:'Campuchia',url:'map-assets/neighbors/KHM-ADM1.geojson'}
 ];
 
 const el=(tag,a={})=>{const n=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>n.setAttribute(k,v));return n};
@@ -68,7 +68,7 @@ function drawFeature(countryId,feature,index){
   const d=geometryPath(g);if(!d)return false;
   // Giống ảnh tham khảo: không tô màu, chỉ các đường ranh giới hành chính xám rất nhạt.
   layer.appendChild(el('path',{
-    d,fill:'none',stroke:'#aeb6bd','stroke-width':'0.82',opacity:'.58',
+    d,fill:'none',stroke:'#969fa8','stroke-width':'1.08',opacity:'.82',
     'stroke-linecap':'round','stroke-linejoin':'round','vector-effect':'non-scaling-stroke',
     'shape-rendering':'geometricPrecision',class:'neighbor-admin-region',
     'data-country':countryId,'data-region':String(feature?.properties?.shapeName||feature?.properties?.name||index)
