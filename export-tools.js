@@ -154,7 +154,7 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
     const l=document.createElement('link');l.rel='stylesheet';l.href='flag-shape-tools.css?v=3';l.dataset.vnFlagShapes='1';document.head.appendChild(l);
   }
   if(!window.__VN_FLAG_SHAPES&&!document.querySelector('script[data-vn-flag-shapes]')){
-    const s=document.createElement('script');s.src='flag-shape-tools.js?v=6';s.dataset.vnFlagShapes='1';s.onerror=()=>console.warn('Không tải được thư viện shape cờ ngang');document.body.appendChild(s);
+    const s=document.createElement('script');s.src='flag-shape-tools.js?v=7';s.dataset.vnFlagShapes='1';s.onerror=()=>console.warn('Không tải được thư viện shape cờ ngang');document.body.appendChild(s);
   }
 })();
 
