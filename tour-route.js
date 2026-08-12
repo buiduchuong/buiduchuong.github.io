@@ -4,6 +4,7 @@ const NS='http://www.w3.org/2000/svg';
 const STORE='vn-xuyen-viet-route-v1';
 const COORD_MARK='vn-xuyen-viet-route-fixed-33-v1';
 const POINT26_MARK='vn-xuyen-viet-route-point26-saky-v1';
+const OVERLAP_MARK='vn-xuyen-viet-route-overlap-separated-v1';
 const ROUTE=[
  ['01','Hà Nội'],['37','Ninh Bình · Hà Nam cũ'],['42','Hà Tĩnh'],['44','Quảng Trị'],['46','Huế'],['48','Đà Nẵng'],
  ['52','Gia Lai'],['51','Quảng Ngãi'],['52','Gia Lai'],['66','Đắk Lắk'],['68','Lâm Đồng'],['79','TP.HCM'],
@@ -50,6 +51,20 @@ const FIXED_GEO={
  31:{name:'Tràng An · Ninh Bình',lat:20.255694,lon:105.915611,note:'Hoa Lư/Tuyệt Tình Cốc/Tràng An/Hang Múa'},
  32:{name:'Nhà hát Lớn Hà Nội',lat:21.024167,lon:105.857778,note:'Kết thúc hành trình, về lại điểm đón ban đầu'}
 };
+// Dịch hiển thị nhỏ cho các marker trùng hoặc quá gần nhau. GPS thật trong FIXED_GEO không đổi.
+// Mục tiêu: mọi vòng tròn số 1–33 đều nhìn thấy riêng, kể cả khi hành trình quay lại cùng một thành phố.
+const DISPLAY_OFFSET={
+  0:{x:-11,y:-8},32:{x:11,y:8},       // Hà Nội: đầu / cuối
+  2:{x:0,y:-12},29:{x:0,y:12},        // TP Hà Tĩnh / Ngã Ba Đồng Lộc
+  3:{x:-11,y:-7},28:{x:11,y:7},       // Đồng Hới - Nhật Lệ: lượt đi / lượt về
+  4:{x:-11,y:-7},27:{x:11,y:7},       // Huế: lượt đi / lượt về
+  6:{x:-11,y:-7},24:{x:11,y:7},       // Quy Nhơn: lượt đi / lượt về
+ 11:{x:-11,y:-7},18:{x:11,y:7},       // TP.HCM: trước miền Tây / quay lại
+ 12:{x:-9,y:-7},13:{x:9,y:7},         // Mỹ Tho / Bến Tre
+  5:{x:-8,y:-6},26:{x:8,y:6},         // Đà Nẵng / Hội An
+ 14:{x:-8,y:0},17:{x:8,y:0},          // Cần Thơ / Sa Đéc
+  1:{x:-6,y:-3},31:{x:6,y:3}          // Phủ Lý / Tràng An
+};
 const svg=document.getElementById('mapSvg'),viewport=document.getElementById('viewport');
 if(!svg||!viewport)return;
 let layer=null,selected=-1,selectedPoint=-1,drag=null,basePoints=[];
@@ -64,6 +79,7 @@ function provinceCenter(code){
  return[b.x+b.width/2,b.y+b.height/2];
 }
 function geoProject(lon,lat){return{x:PLOT.x+(lon-GEO.minLon)/(GEO.maxLon-GEO.minLon)*PLOT.w,y:PLOT.y+(GEO.maxLat-lat)/(GEO.maxLat-GEO.minLat)*PLOT.h}}
+function fixedDisplayPoint(idx){const f=FIXED_GEO[idx];if(!f)return null;const p=geoProject(f.lon,f.lat),o=DISPLAY_OFFSET[idx]||{x:0,y:0};return{x:p.x+o.x,y:p.y+o.y}}
 function occurrenceOffsets(){
  const total={};ROUTE.forEach(([c])=>total[c]=(total[c]||0)+1);
  const seen={};
@@ -78,7 +94,7 @@ function occurrenceOffsets(){
 function buildBasePoints(){
  const offs=occurrenceOffsets();
  basePoints=ROUTE.map(([code],i)=>{const p=provinceCenter(code);return{x:p[0]+offs[i][0],y:p[1]+offs[i][1]}});
- Object.entries(FIXED_GEO).forEach(([idx,g])=>{const i=Number(idx);if(i>=0&&i<basePoints.length)basePoints[i]=geoProject(g.lon,g.lat)});
+ Object.keys(FIXED_GEO).forEach(idx=>{const i=Number(idx),p=fixedDisplayPoint(i);if(p&&i>=0&&i<basePoints.length)basePoints[i]=p});
 }
 function defaultData(){
  const bends=Array.from({length:ROUTE.length-1},(_,i)=>{
@@ -176,13 +192,15 @@ function syncPoint(){
  const n=$('tourPointSelected'),btn=$('tourFixSelected');if(!n)return;
  if(selectedPoint<0){n.textContent='Chưa chọn marker số. Cả 33 điểm đã có tọa độ đại diện theo chương trình.';if(btn)btn.disabled=true;return}
  const p=data.points[selectedPoint],fixed=FIXED_GEO[selectedPoint];
- if(fixed){n.innerHTML=`<b>Điểm ${selectedPoint+1}: ${ROUTE[selectedPoint][1]}</b><br>${fixed.name}<br>GPS: ${fixed.lat.toFixed(6)}, ${fixed.lon.toFixed(6)}<br>SVG: ${p.x.toFixed(1)}, ${p.y.toFixed(1)}<br><span style="font-size:11px">${fixed.note}</span>`;if(btn)btn.disabled=false}
+ if(fixed){const shifted=!!DISPLAY_OFFSET[selectedPoint];n.innerHTML=`<b>Điểm ${selectedPoint+1}: ${ROUTE[selectedPoint][1]}</b><br>${fixed.name}<br>GPS thật: ${fixed.lat.toFixed(6)}, ${fixed.lon.toFixed(6)}<br>SVG hiển thị: ${p.x.toFixed(1)}, ${p.y.toFixed(1)}${shifted?'<br><span style="font-size:11px;color:#9a5a13">Marker được dịch nhẹ để không chồng số; GPS thật không đổi.</span>':''}<br><span style="font-size:11px">${fixed.note}</span>`;if(btn)btn.disabled=false}
  else{n.innerHTML=`<b>Điểm ${selectedPoint+1}: ${ROUTE[selectedPoint][1]}</b><br>SVG hiện tại: ${p.x.toFixed(1)}, ${p.y.toFixed(1)}<br><span style="font-size:11px">Chưa khai báo GPS chuẩn cho điểm này.</span>`;if(btn)btn.disabled=true}
 }
-function fixPoint(idx){const fixed=FIXED_GEO[idx];if(!fixed||!data?.points?.[idx])return false;data.points[idx]=geoProject(fixed.lon,fixed.lat);save();render();syncPoint();return true}
+function fixPoint(idx){const fixed=FIXED_GEO[idx],p=fixedDisplayPoint(idx);if(!fixed||!p||!data?.points?.[idx])return false;data.points[idx]=p;save();render();syncPoint();return true}
 function fixAllPoints(showMessage=true){for(let i=0;i<ROUTE.length;i++)fixPoint(i);try{localStorage.setItem(COORD_MARK,'done')}catch{}selectedPoint=0;syncPoint();render();if(showMessage){const n=$('tourPointSelected');if(n)n.insertAdjacentHTML('beforeend','<br><b>✓ Đã sửa đúng tọa độ toàn bộ 33 điểm.</b>')}}
-function migrateAllPointsOnce(){let done=false;try{done=localStorage.getItem(COORD_MARK)==='done'}catch{}if(done)return;for(let i=0;i<ROUTE.length;i++){const f=FIXED_GEO[i];if(f&&data?.points?.[i])data.points[i]=geoProject(f.lon,f.lat)}save();try{localStorage.setItem(COORD_MARK,'done')}catch{}}
-function migratePoint26Once(){let done=false;try{done=localStorage.getItem(POINT26_MARK)==='done'}catch{}if(done)return;const f=FIXED_GEO[25];if(f&&data?.points?.[25]){data.points[25]=geoProject(f.lon,f.lat);save()}try{localStorage.setItem(POINT26_MARK,'done')}catch{}}
+function migrateAllPointsOnce(){let done=false;try{done=localStorage.getItem(COORD_MARK)==='done'}catch{}if(done)return;for(let i=0;i<ROUTE.length;i++){const p=fixedDisplayPoint(i);if(p&&data?.points?.[i])data.points[i]=p}save();try{localStorage.setItem(COORD_MARK,'done')}catch{}}
+function migratePoint26Once(){let done=false;try{done=localStorage.getItem(POINT26_MARK)==='done'}catch{}if(done)return;const p=fixedDisplayPoint(25);if(p&&data?.points?.[25]){data.points[25]=p;save()}try{localStorage.setItem(POINT26_MARK,'done')}catch{}}
+function separateOverlaps(showMessage=true){Object.keys(DISPLAY_OFFSET).forEach(idx=>{const i=Number(idx),p=fixedDisplayPoint(i);if(p&&data?.points?.[i])data.points[i]=p});save();render();syncPoint();try{localStorage.setItem(OVERLAP_MARK,'done')}catch{}if(showMessage){const n=$('tourPointSelected');if(n)n.insertAdjacentHTML('beforeend','<br><b>✓ Đã tách các marker trùng/quá gần nhau; GPS thật không đổi.</b>')}}
+function migrateOverlapOnce(){let done=false;try{done=localStorage.getItem(OVERLAP_MARK)==='done'}catch{}if(done)return;separateOverlaps(false)}
 function injectUI(){
  const controls=document.querySelector('.controls');if(!controls||$('tourRouteGroup'))return;
  const g=document.createElement('div');g.className='group';g.id='tourRouteGroup';
@@ -197,7 +215,8 @@ function injectUI(){
  <div class="row"><button id="tourStraight" class="btn">Làm thẳng chặng</button><button id="tourReset" class="btn">Khôi phục tuyến</button></div>
  <div id="tourPointSelected" class="mode-note" style="margin-top:8px">Chưa chọn marker số. Cả 33 điểm đã có tọa độ đại diện theo chương trình.</div>
  <div class="row"><button id="tourFixAll" class="btn primary">Sửa đúng tọa độ toàn bộ 33 điểm</button><button id="tourFixSelected" class="btn" disabled>Sửa điểm đang chọn</button></div>
- <div class="tip">33 marker được đặt theo <b>điểm dừng thực tế đại diện</b> trong chương trình, không đặt ở tâm tỉnh. Với tỉnh mới sáp nhập, tên tỉnh trên bản đồ có thể khác tên địa danh cũ. Bấm marker để xem tên điểm + GPS; vẫn có thể kéo thủ công.</div>`;
+ <button id="tourSeparateOverlaps" class="btn" style="width:100%;margin-top:6px">Tách các marker trùng / quá gần</button>
+ <div class="tip">33 marker theo <b>điểm dừng thực tế đại diện</b>. Các lần quay lại cùng địa điểm và các điểm quá gần nhau được dịch hiển thị nhẹ để không chồng số; <b>GPS thật vẫn giữ nguyên</b>. Bấm marker để xem GPS; vẫn có thể kéo thủ công.</div>`;
  const displayGroup=[...controls.children].find(x=>x.querySelector?.('.group-title')?.textContent.includes('Hiển thị'));
  if(displayGroup)controls.insertBefore(g,displayGroup);else controls.appendChild(g);
  $('showTourRoute').checked=data.show;$('showTourNumbers').checked=data.showNumbers;$('showTourArrows').checked=data.showArrows;$('tourColor').value=data.color;$('tourWidth').value=data.width;
@@ -210,6 +229,7 @@ function injectUI(){
  $('tourStraight').addEventListener('click',()=>{if(selected>=0)setBend(0)});
  $('tourFixAll').addEventListener('click',()=>fixAllPoints(true));
  $('tourFixSelected').addEventListener('click',()=>{if(selectedPoint>=0)fixPoint(selectedPoint)});
+ $('tourSeparateOverlaps').addEventListener('click',()=>separateOverlaps(true));
  $('tourReset').addEventListener('click',()=>{if(!confirm('Khôi phục toàn bộ cung đường Xuyên Việt về vị trí và độ cong mặc định?'))return;data=defaultData();selected=-1;selectedPoint=-1;save();syncSegment();syncPoint();$('showTourRoute').checked=data.show;$('showTourNumbers').checked=data.showNumbers;$('showTourArrows').checked=data.showArrows;$('tourColor').value=data.color;$('tourWidth').value=data.width;render()});
  syncSegment();syncPoint();
 }
@@ -222,7 +242,7 @@ function initLayer(){
 function ready(){return ROUTE.every(([code])=>document.getElementById('province-'+code))}
 function init(){
  if(!ready()){setTimeout(init,250);return}
- buildBasePoints();load();migrateAllPointsOnce();migratePoint26Once();initLayer();injectUI();render();
+ buildBasePoints();load();migrateAllPointsOnce();migratePoint26Once();migrateOverlapOnce();initLayer();injectUI();render();
 }
 init();
 })();
