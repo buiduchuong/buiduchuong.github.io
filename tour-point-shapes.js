@@ -44,15 +44,15 @@ function setTourVisible(on){try{localStorage.setItem(VIS_KEY,on?'1':'0')}catch{}
 function applyVisibility(){const layer=$('shapeFlagLayer');if(!layer)return;const visible=tourVisible();layer.querySelectorAll('.flag-shape-marker[data-id]').forEach(g=>{if(IDSET.has(g.dataset.id))g.style.display=visible?'':'none'})}
 function syncToggle(){const btn=$('toggleTourPointShapes');if(!btn)return;const visible=tourVisible();btn.textContent=visible?'Ẩn 8 ảnh nổi bật':'Hiện 8 ảnh nổi bật';btn.title=visible?'Ẩn 8 shape ảnh nổi bật và đường nối':'Hiện lại 8 shape ảnh nổi bật và đường nối';btn.dataset.hidden=visible?'0':'1'}
 function injectToggle(){
- const select=$('shapeFlagSelect'),group=select?.closest('.group');if(!select||!group)return false;
+ const select=$('shapeFlagSelect'),group=select?.closest('.group'),quick=select?.closest('.flag-shape-quick');if(!select||!group)return false;
  let wrap=$('tourPointShapeToggleWrap');
- if(!wrap){wrap=document.createElement('div');wrap.id='tourPointShapeToggleWrap';wrap.style.cssText='margin:8px 0 7px;display:grid;gap:6px';select.insertAdjacentElement('beforebegin',wrap)}
+ if(!wrap){wrap=document.createElement('div');wrap.id='tourPointShapeToggleWrap';wrap.style.cssText='margin:8px 0 7px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;width:100%;min-width:0;box-sizing:border-box';(quick||select).insertAdjacentElement('beforebegin',wrap)}
  let btn=$('toggleTourPointShapes');
- if(!btn){btn=document.createElement('button');btn.id='toggleTourPointShapes';btn.type='button';btn.className='btn';btn.style.cssText='width:100%;font-weight:800';btn.addEventListener('click',()=>setTourVisible(!tourVisible()));wrap.appendChild(btn)}
+ if(!btn){btn=document.createElement('button');btn.id='toggleTourPointShapes';btn.type='button';btn.className='btn';btn.style.cssText='width:100%;min-width:0;min-height:42px;padding:7px 9px;font-weight:800;line-height:1.2;white-space:normal;word-break:normal;box-sizing:border-box';btn.addEventListener('click',()=>setTourVisible(!tourVisible()));wrap.appendChild(btn)}
  let fix=$('fixTourPointShapePositions');
- if(!fix){fix=document.createElement('button');fix.id='fixTourPointShapePositions';fix.type='button';fix.className='btn primary';fix.style.cssText='width:100%;font-weight:800';fix.textContent='Sửa đúng vị trí 8 Shape Ảnh';fix.title='Đưa điểm neo của 8 Shape Ảnh về đúng địa danh; giữ nguyên ảnh, kích thước và kiểu khung';fix.addEventListener('click',()=>fixManagedPositions(true));wrap.appendChild(fix)}
+ if(!fix){fix=document.createElement('button');fix.id='fixTourPointShapePositions';fix.type='button';fix.className='btn primary';fix.style.cssText='width:100%;min-width:0;min-height:42px;padding:7px 9px;font-weight:800;line-height:1.2;white-space:normal;word-break:normal;box-sizing:border-box';fix.textContent='Sửa đúng vị trí 8 Shape Ảnh';fix.title='Đưa điểm neo của 8 Shape Ảnh về đúng địa danh; giữ nguyên ảnh, kích thước và kiểu khung';fix.addEventListener('click',()=>fixManagedPositions(true));wrap.appendChild(fix)}
  let note=$('tourPointShapePositionNote');
- if(!note){note=document.createElement('div');note.id='tourPointShapePositionNote';note.style.cssText='font-size:10px;color:#746a60;line-height:1.35';note.textContent='Chỉ sửa X/Y điểm neo. Ảnh, W×H, khung và đường nối bạn đã chỉnh vẫn được giữ nguyên.';wrap.appendChild(note)}
+ if(!note){note=document.createElement('div');note.id='tourPointShapePositionNote';note.style.cssText='grid-column:1/-1;width:100%;max-width:100%;font-size:10px;color:#746a60;line-height:1.4;white-space:normal;word-break:normal;overflow-wrap:break-word;box-sizing:border-box';note.textContent='Chỉ sửa X/Y điểm neo. Ảnh, W×H, khung và đường nối bạn đã chỉnh vẫn được giữ nguyên.';wrap.appendChild(note)}
  syncToggle();return true
 }
 let layerObserver=null;
