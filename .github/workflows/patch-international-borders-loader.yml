@@ -1,0 +1,34 @@
+name: Patch international border loader
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-international-borders-loader.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply loader patch
+        run: python tools/patch-international-borders-loader.py
+      - name: Validate
+        run: |
+          node --check international-borders.js
+          grep -q "load('international-borders.js?v=1')" index.html
+          grep -q "TRUNG QUỐC" international-borders.js
+          grep -q "LÀO" international-borders.js
+          grep -q "CAMPUCHIA" international-borders.js
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Load Vietnam international borders'
+          git push
