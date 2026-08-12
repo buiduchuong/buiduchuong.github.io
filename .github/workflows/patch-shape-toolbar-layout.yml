@@ -1,0 +1,34 @@
+name: Patch shape toolbar layout
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-shape-toolbar-layout.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply patch
+        run: python tools/patch-shape-toolbar-layout.py
+      - name: Validate
+        run: |
+          node --check tour-point-shapes.js
+          grep -q "quick=select?.closest('.flag-shape-quick')" tour-point-shapes.js
+          grep -q "grid-template-columns:minmax(0,1fr) minmax(0,1fr)" tour-point-shapes.js
+          grep -q "grid-column:1/-1" tour-point-shapes.js
+          grep -q 'tour-point-shapes.js?v=11' index.html
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tour-point-shapes.js index.html
+          git commit -m 'Fix tour image shape toolbar layout'
+          git push
