@@ -8,6 +8,24 @@ const svg=document.getElementById('mapSvg');
 const viewport=document.getElementById('viewport');
 if(!svg||!viewport)return;
 
+// Palette bản đồ: nền trắng + biển xanh, loại bỏ hoàn toàn tông vàng/cam của nền cũ.
+const paperStops=svg.querySelectorAll('#paper stop');
+paperStops.forEach(stop=>{
+  stop.setAttribute('stop-color','#ffffff');
+  stop.setAttribute('stop-opacity','1');
+});
+const seaStops=svg.querySelectorAll('#sea stop');
+if(seaStops[0]){
+  seaStops[0].setAttribute('stop-color','#c9efff');
+  seaStops[0].setAttribute('stop-opacity','1');
+}
+if(seaStops[1]){
+  seaStops[1].setAttribute('stop-color','#79c8ef');
+  seaStops[1].setAttribute('stop-opacity','1');
+}
+const canvas=document.getElementById('canvas');
+if(canvas)canvas.style.background='#ffffff';
+
 const GEO={minLon:101.7,maxLon:110.7,minLat:7.4,maxLat:23.7};
 const PLOT={x:350,y:18,w:700,h:954};
 const project=(lon,lat)=>({
