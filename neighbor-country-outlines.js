@@ -18,8 +18,6 @@ const project=([lon,lat])=>[
 ];
 
 // Khung toàn Đông Nam Á dùng riêng cho xuất PNG/SVG/PDF.
-// Phủ Myanmar/Thái Lan/Đông Dương, Malaysia-Singapore, toàn Indonesia, Brunei,
-// Philippines và một phần nam Trung Quốc/Ấn Độ để ảnh xuất luôn có dư biển + đất liền.
 const REGION_GEO={minLon:88,maxLon:145,minLat:-13,maxLat:31};
 const nw=project([REGION_GEO.minLon,REGION_GEO.maxLat]);
 const se=project([REGION_GEO.maxLon,REGION_GEO.minLat]);
@@ -36,12 +34,26 @@ window.__VN_REGIONAL_CONTEXT={
   source:'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json'
 };
 
-// Ranh giới ADM1 chi tiết hiện có trong repo.
 const DRAW_BOUNDS={minLon:87.5,maxLon:145.5,minLat:-13.5,maxLat:31.5};
+const GEOBOUNDARIES_API='https://www.geoboundaries.org/api/current/gbOpen';
+
+// Trung Quốc, Lào, Campuchia dùng dữ liệu ADM1 đã lưu trong repo để tải nhanh.
+// Các nước còn lại dùng geoBoundaries ADM1 simplified để tất cả đều có các đường hành chính nhỏ,
+// mảnh và đồng bộ giống Trung Quốc.
 const ADM1_SOURCES=[
-  {id:'CHN',name:'Trung Quốc',url:'map-assets/neighbors/CHN-ADM1.geojson'},
-  {id:'LAO',name:'Lào',url:'map-assets/neighbors/LAO-ADM1.geojson'},
-  {id:'KHM',name:'Campuchia',url:'map-assets/neighbors/KHM-ADM1.geojson'}
+  {id:'CHN',name:'Trung Quốc',url:'map-assets/neighbors/CHN-ADM1.geojson',local:true},
+  {id:'LAO',name:'Lào',url:'map-assets/neighbors/LAO-ADM1.geojson',local:true},
+  {id:'KHM',name:'Campuchia',url:'map-assets/neighbors/KHM-ADM1.geojson',local:true},
+  {id:'THA',name:'Thái Lan'},
+  {id:'MMR',name:'Myanmar'},
+  {id:'MYS',name:'Malaysia'},
+  {id:'SGP',name:'Singapore'},
+  {id:'BRN',name:'Brunei'},
+  {id:'IDN',name:'Indonesia'},
+  {id:'PHL',name:'Philippines'},
+  {id:'TLS',name:'Timor-Leste'},
+  {id:'BGD',name:'Bangladesh'},
+  {id:'IND',name:'Ấn Độ'}
 ];
 
 // Lớp đất liền khu vực lấy từ bộ country GeoJSON công khai trên GitHub.
@@ -77,6 +89,32 @@ function intersectsView(g){
   return !(b.maxLon<DRAW_BOUNDS.minLon||b.minLon>DRAW_BOUNDS.maxLon||b.maxLat<DRAW_BOUNDS.minLat||b.minLat>DRAW_BOUNDS.maxLat);
 }
 
+function fetchJson(url,timeout=22000){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeout);
+  return fetch(url,{mode:'cors',cache:'force-cache',signal:controller.signal})
+    .then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()})
+    .finally(()=>clearTimeout(timer));
+}
+
+async function resolveAdm1Urls(cfg){
+  if(cfg.url)return[cfg.url];
+  const meta=await fetchJson(`${GEOBOUNDARIES_API}/${cfg.id}/ADM1/`,12000);
+  const urls=[];
+  if(meta?.simplifiedGeometryGeoJSON)urls.push(meta.simplifiedGeometryGeoJSON);
+  if(meta?.gjDownloadURL)urls.push(meta.gjDownloadURL);
+  if(!urls.length)throw new Error(`${cfg.name}: không có URL GeoJSON ADM1`);
+  return [...new Set(urls)];
+}
+
+async function fetchFirstJson(urls,cfg){
+  let lastErr=null;
+  for(const url of urls){
+    try{return await fetchJson(url,30000)}catch(err){lastErr=err}
+  }
+  throw new Error(`${cfg.name}: ${lastErr?.message||'không tải được dữ liệu'}`);
+}
+
 // Dọn các lớp cũ từ cache/phiên trước.
 document.getElementById('internationalBorderLayer')?.remove();
 document.getElementById('regionalLandLayer')?.remove();
@@ -91,7 +129,7 @@ if(!adminLayer){
   viewport.insertBefore(adminLayer,mapLayer);
 }
 
-// Biên giới quốc gia đặt TRÊN lớp tỉnh Việt Nam để đường đất liền và đường bờ biển rõ, đẹp hơn.
+// Biên giới quốc gia đặt trên lớp tỉnh Việt Nam để viền ngoài rõ hơn ranh giới ADM1 bên trong.
 const nationalBorderLayer=el('g',{id:'regionalNationalBorderLayer','data-export-layer':'national-borders','pointer-events':'none'});
 viewport.insertBefore(nationalBorderLayer,lineLayer||null);
 
@@ -101,16 +139,14 @@ function drawRegionalFeature(feature){
   const g=feature?.geometry;if(!g||!intersectsView(g))return false;
   const d=geometryPath(g);if(!d)return false;
 
-  // Đất liền trắng, nằm trên nền biển xanh.
   regionalLandLayer.appendChild(el('path',{
     d,fill:'#ffffff','fill-rule':'evenodd',stroke:'none',
     class:'regional-country-land','data-country':id
   }));
 
-  // Viền quốc gia rộng hơn để khi xuất 4K/8K/PDF không bị nhạt hoặc đứt nét.
   nationalBorderLayer.appendChild(el('path',{
-    d,fill:'none',stroke:id==='VNM'?'#465b68':'#6d7b85',
-    'stroke-width':id==='VNM'?'2.55':'2.05',opacity:id==='VNM'?'1':'.96',
+    d,fill:'none',stroke:id==='VNM'?'#465b68':'#687883',
+    'stroke-width':id==='VNM'?'2.55':'1.85',opacity:id==='VNM'?'1':'.96',
     'stroke-linecap':'round','stroke-linejoin':'round','vector-effect':'non-scaling-stroke',
     'shape-rendering':'geometricPrecision',class:'regional-country-border','data-country':id
   }));
@@ -120,32 +156,31 @@ function drawRegionalFeature(feature){
 function drawAdm1Feature(countryId,feature,index){
   const g=feature?.geometry;if(!g||!intersectsView(g))return false;
   const d=geometryPath(g);if(!d)return false;
-  // Không tô trắng từng tỉnh nước ngoài nữa để tránh chồng mảng; chỉ giữ ranh giới hành chính nhẹ.
+
+  // Một phong cách ADM1 duy nhất cho toàn khu vực: nét xám nhỏ, mềm, không lấn át Việt Nam.
+  // opacity thấp giúp các cạnh chung bị vẽ chồng vẫn không quá đậm khi xuất 4K/8K/PDF.
   adminLayer.appendChild(el('path',{
-    d,fill:'none',stroke:'#a6afb6','stroke-width':'1.02',opacity:'.80',
+    d,fill:'none',stroke:'#9da8b0','stroke-width':'0.84',opacity:'.68',
     'stroke-linecap':'round','stroke-linejoin':'round','vector-effect':'non-scaling-stroke',
     'shape-rendering':'geometricPrecision',class:'neighbor-admin-region',
-    'data-country':countryId,'data-region':String(feature?.properties?.shapeName||feature?.properties?.name||index)
+    'data-country':countryId,'data-region':String(feature?.properties?.shapeName||feature?.properties?.name||feature?.properties?.shapeISO||index)
   }));
   return true;
 }
 
 async function loadRegional(){
-  const r=await fetch(REGIONAL_URL,{mode:'cors',cache:'force-cache'});
-  if(!r.ok)throw new Error(`Regional countries: HTTP ${r.status}`);
-  const json=await r.json();
+  const json=await fetchJson(REGIONAL_URL,22000);
   const features=json?.type==='FeatureCollection'?json.features:[];
   let drawn=0;features.forEach(f=>{if(drawRegionalFeature(f))drawn++});
   return drawn;
 }
 
 async function loadAdm1(cfg){
-  const r=await fetch(cfg.url,{mode:'cors',cache:'force-cache'});
-  if(!r.ok)throw new Error(`${cfg.name}: HTTP ${r.status}`);
-  const json=await r.json();
+  const urls=await resolveAdm1Urls(cfg);
+  const json=await fetchFirstJson(urls,cfg);
   const features=json?.type==='FeatureCollection'?json.features:(json?.type==='Feature'?[json]:[]);
   let drawn=0;features.forEach((f,i)=>{if(drawAdm1Feature(cfg.id,f,i))drawn++});
-  return drawn;
+  return{country:cfg.id,name:cfg.name,drawn};
 }
 
 async function draw(){
@@ -153,19 +188,24 @@ async function draw(){
   nationalBorderLayer.innerHTML='';
   adminLayer.innerHTML='';
 
-  const [regionalResult,...admResults]=await Promise.allSettled([
-    loadRegional(),
-    ...ADM1_SOURCES.map(loadAdm1)
-  ]);
+  // Nền quốc gia lên trước để người dùng thấy bản đồ nhanh; ADM1 tải song song sau đó.
+  let regional=0;
+  try{regional=await loadRegional()}catch(err){console.warn('Không tải được nền Đông Nam Á',err)}
 
+  const admResults=await Promise.allSettled(ADM1_SOURCES.map(loadAdm1));
   const failed=[];
-  if(regionalResult.status==='rejected')failed.push('Nền Đông Nam Á');
-  admResults.forEach((r,i)=>{if(r.status==='rejected')failed.push(ADM1_SOURCES[i].name)});
-  if(failed.length)console.warn('Không tải được một số lớp bản đồ:',failed.join(', '));
+  const loaded=[];
+  admResults.forEach((r,i)=>{
+    if(r.status==='rejected')failed.push(ADM1_SOURCES[i].name);
+    else loaded.push(r.value);
+  });
+  if(failed.length)console.warn('Không tải được ADM1 của:',failed.join(', '));
 
+  window.__VN_ADM1_STATUS={regional,loaded,failed,updatedAt:new Date().toISOString()};
   return{
-    regional:regionalResult.status==='fulfilled'?regionalResult.value:0,
-    adm1:admResults.reduce((n,r)=>n+(r.status==='fulfilled'?(Number(r.value)||0):0),0),
+    regional,
+    adm1:loaded.reduce((n,x)=>n+(Number(x.drawn)||0),0),
+    loaded,
     failed
   };
 }
@@ -177,6 +217,7 @@ window.__VN_NEIGHBOR_COUNTRY_OUTLINES_API={
   regionalLandLayer,
   nationalBorderLayer,
   sources:ADM1_SOURCES.map(x=>({...x})),
-  regionalContext:window.__VN_REGIONAL_CONTEXT
+  regionalContext:window.__VN_REGIONAL_CONTEXT,
+  getStatus:()=>window.__VN_ADM1_STATUS||null
 };
 })();
