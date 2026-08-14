@@ -15,9 +15,37 @@ function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function status(text,error=false){const n=STATUS();if(!n)return;n.textContent=text;n.style.color=error?'#b11435':''}
 function waitFonts(){return document.fonts?.ready||Promise.resolve()}
 function failureRecord(img,href,error,index){let id=img?.closest?.('[data-id]')?.getAttribute('data-id')||img?.id||`image-${index+1}`;let name='';try{const f=window.__VN_FLAG_SHAPES?.getAll?.().find(x=>x?.id===id);name=f?.tourName||f?.label||''}catch{}let url=href;try{url=new URL(href,location.href).href}catch{}return{id,name,href,url,error:error?.message||String(error)}}
-function keepView(){return $('exportKeepView')?.checked!==false}
+function regionalFrame(){return $('exportRegionalFrame')?.checked!==false}
+function keepView(){return regionalFrame()?false:$('exportKeepView')?.checked!==false}
+function regionalViewBox(){
+  const vb=String(window.__VN_REGIONAL_CONTEXT?.viewBox||'').trim();
+  return vb||null;
+}
 function currentView(){const vp=$('viewport');return{transform:vp?.getAttribute('transform')||'',style:vp?.getAttribute('style')||''}}
-function applyView(root,view){const vp=root.querySelector?.('#viewport');if(!vp)return;if(keepView()){view.transform?vp.setAttribute('transform',view.transform):vp.removeAttribute('transform');view.style?vp.setAttribute('style',view.style):vp.removeAttribute('style')}else{vp.removeAttribute('transform');vp.removeAttribute('style')}}
+function mapRoot(root){
+  if(!root)return null;
+  if(root.id==='mapSvg')return root;
+  return root.querySelector?.('#mapSvg')||null;
+}
+function applyRegionalFrame(root){
+  if(!regionalFrame())return;
+  const map=mapRoot(root),vb=regionalViewBox();
+  if(!map||!vb)return;
+  map.setAttribute('viewBox',vb);
+  map.setAttribute('preserveAspectRatio','xMidYMid meet');
+  const vp=map.querySelector?.('#viewport');
+  if(vp){vp.removeAttribute('transform');vp.removeAttribute('style')}
+}
+function applyView(root,view){
+  const vp=root.id==='viewport'?root:root.querySelector?.('#viewport');
+  if(!vp)return;
+  if(keepView()){
+    view.transform?vp.setAttribute('transform',view.transform):vp.removeAttribute('transform');
+    view.style?vp.setAttribute('style',view.style):vp.removeAttribute('style');
+  }else{
+    vp.removeAttribute('transform');vp.removeAttribute('style');
+  }
+}
 function cleanSvg(root){
   root.querySelectorAll('#handleLayer,#previewLayer').forEach(n=>n.remove());
   root.querySelectorAll('.editor-line.selected,.flag-marker.selected,.flag-shape-marker.selected,.food-marker.selected').forEach(n=>n.classList.remove('selected'));
@@ -30,6 +58,7 @@ function cleanHtmlClone(doc,view){
   doc.querySelectorAll('.province.active').forEach(n=>n.classList.remove('active'));
   doc.querySelectorAll('.shape-drop-ready').forEach(n=>n.classList.remove('shape-drop-ready'));
   applyView(doc,view);
+  applyRegionalFrame(doc);
 }
 function blobToDataURL(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=()=>reject(r.error||new Error('Không đọc được ảnh'));r.readAsDataURL(blob)})}
 async function hrefToDataURL(href){
@@ -65,7 +94,7 @@ function injectSvgStyles(root){
   root.querySelectorAll('style[data-vn-export-style]').forEach(n=>n.remove());
   const style=document.createElementNS(SVG_NS,'style');
   style.setAttribute('data-vn-export-style','1');
-  style.textContent=collectLocalCss()+`\n.province-name{font-family:Roboto,Arial,sans-serif;text-anchor:middle;stroke:none}.province-distance{font-family:Roboto,Arial,sans-serif;text-anchor:middle;font-weight:700;fill:#333;stroke:none}.editor-line{fill:none}.shape-anchor-hit,.shape-head-hit{opacity:0}.pin-o{fill:#fff8ea;stroke:#e51d49;stroke-width:1.8}.pin-i{fill:#e51d49}`;
+  style.textContent=collectLocalCss()+`\n.province-name{font-family:Roboto,Arial,sans-serif;text-anchor:middle;stroke:none}.province-distance{font-family:Roboto,Arial,sans-serif;text-anchor:middle;font-weight:700;fill:#333;stroke:none}.editor-line{fill:none}.shape-anchor-hit,.shape-head-hit{opacity:0}.pin-o{fill:#fff8ea;stroke:#e51d49;stroke-width:1.8}.pin-i{fill:#e51d49}.regional-country-border,.neighbor-admin-region,.province{shape-rendering:geometricPrecision}`;
   root.insertBefore(style,root.firstChild);
 }
 async function buildStandaloneSvg(){
@@ -78,6 +107,7 @@ async function buildStandaloneSvg(){
   clone.setAttribute('xmlns:xlink',XLINK);
   cleanSvg(clone);
   applyView(clone,view);
+  applyRegionalFrame(clone);
   injectSvgStyles(clone);
   const failed=await inlineSvgImages(clone);
   return{clone,failed};
@@ -87,9 +117,9 @@ function downloadText(text,name,type){downloadBlob(new Blob([text],{type}),name)
 function serializeSvg(node){return'<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(node)}
 async function exportEmbeddedSvg(){
   const{clone,failed}=await buildStandaloneSvg();
-  downloadText(serializeSvg(clone),'ban-do-viet-nam-tu-nhung-anh.svg','image/svg+xml;charset=utf-8');
+  downloadText(serializeSvg(clone),regionalFrame()?'ban-do-viet-nam-khung-dong-nam-a.svg':'ban-do-viet-nam-tu-nhung-anh.svg','image/svg+xml;charset=utf-8');
   if(failed.length){window.__VN_EXPORT_IMAGE_REPORT?.show?.(failed,'xuất SVG');status(`Đã xuất SVG, nhưng ${failed.length} ảnh bị lỗi khi nhúng. Xem Báo cáo ảnh lỗi bên dưới để biết ID và URL.`,true);}
-  else status('✓ Đã xuất SVG tự nhúng toàn bộ ảnh. File có thể mở độc lập mà không phụ thuộc URL ảnh.');
+  else status(regionalFrame()?'✓ Đã xuất SVG với khung Đông Nam Á mở rộng, biển và đất liền không bị cụt.':'✓ Đã xuất SVG tự nhúng toàn bộ ảnh.');
 }
 function targetScale(targetWidth){
   const r=mapCanvas.getBoundingClientRect();
@@ -105,14 +135,18 @@ async function renderMapPng(targetWidth){
   await waitFonts();
   window.__VN_DEFAULT_ROUTE_DASH?.apply?.();
   const view=currentView(),r=mapCanvas.getBoundingClientRect(),scale=targetScale(targetWidth);
-  return window.html2canvas(mapCanvas,{backgroundColor:'#f5e6cf',useCORS:true,allowTaint:false,logging:false,scale,scrollX:0,scrollY:0,width:Math.ceil(r.width),height:Math.ceil(r.height),onclone:doc=>cleanHtmlClone(doc,view)});
+  return window.html2canvas(mapCanvas,{
+    backgroundColor:'#ffffff',useCORS:true,allowTaint:false,logging:false,scale,
+    scrollX:0,scrollY:0,width:Math.ceil(r.width),height:Math.ceil(r.height),
+    onclone:doc=>cleanHtmlClone(doc,view)
+  });
 }
 function canvasToBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Không tạo được PNG.')),'image/png',1))}
 async function exportPng(targetWidth,label,file){
-  status(`Đang xuất ${label}…`);
+  status(`Đang xuất ${label}${regionalFrame()?' · khung Đông Nam Á mở rộng':''}…`);
   const canvas=await renderMapPng(targetWidth);
   downloadBlob(await canvasToBlob(canvas),file);
-  status(`✓ Đã xuất ${label}: ${canvas.width} × ${canvas.height}px${keepView()?' · giữ zoom/pan hiện tại':''}.`);
+  status(`✓ Đã xuất ${label}: ${canvas.width} × ${canvas.height}px${regionalFrame()?' · biển + đất liền Đông Nam Á mở rộng':keepView()?' · giữ zoom/pan hiện tại':''}.`);
 }
 function loadScript(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.async=true;s.onload=()=>resolve(s);s.onerror=()=>{s.remove();reject(new Error('Không tải được '+src))};document.head.appendChild(s)})}
 async function ensureSvg2Pdf(){
@@ -130,7 +164,7 @@ function svgBox(node){
   return{w:Number(node.getAttribute('width'))||1400,h:Number(node.getAttribute('height'))||1000};
 }
 async function exportVectorPdf(){
-  status('Đang chuẩn bị PDF Vector…');
+  status(`Đang chuẩn bị PDF Vector${regionalFrame()?' · khung Đông Nam Á':''}…`);
   const JsPdf=await ensureSvg2Pdf();
   const{clone,failed}=await buildStandaloneSvg();
   const{w,h}=svgBox(clone);
@@ -141,11 +175,11 @@ async function exportVectorPdf(){
   try{
     const pdf=new JsPdf({orientation:w>=h?'landscape':'portrait',unit:'px',format:[w,h],hotfixes:['px_scaling'],compress:true});
     if(typeof pdf.svg!=='function')throw new Error('Thư viện PDF vector không khả dụng.');
-    status('Đang chuyển đường, chữ và shape sang PDF Vector…');
+    status('Đang chuyển đường, chữ, ranh giới và shape sang PDF Vector…');
     await pdf.svg(clone,{x:0,y:0,width:w,height:h});
-    pdf.save('ban-do-viet-nam-vector.pdf');
+    pdf.save(regionalFrame()?'ban-do-viet-nam-dong-nam-a-vector.pdf':'ban-do-viet-nam-vector.pdf');
     if(failed.length){window.__VN_EXPORT_IMAGE_REPORT?.show?.(failed,'xuất PDF Vector');status(`✓ Đã xuất PDF Vector nhưng ${failed.length} ảnh có thể bị thiếu. Xem Báo cáo ảnh lỗi bên dưới để biết ID và URL.`,true);}
-    else status('✓ Đã xuất PDF Vector. Ranh giới, đường, shape và chữ giữ dạng vector; ảnh bitmap được nhúng ở độ phân giải gốc.');
+    else status(regionalFrame()?'✓ Đã xuất PDF Vector với vùng biển và đất liền Đông Nam Á mở rộng.':'✓ Đã xuất PDF Vector. Ranh giới, đường, shape và chữ giữ dạng vector.');
   }finally{host.remove()}
 }
 function replaceButton(id,label,handler){
@@ -161,17 +195,33 @@ function injectUi(){
   const pngOld=$('exportPngMap'),pdfOld=$('exportPdfMap'),svgOld=$('exportAll');
   if(!pngOld||!pdfOld||!svgOld){setTimeout(injectUi,150);return}
   if($('exportPng4K'))return;
+
   const firstRow=pngOld.closest('.row');
-  replaceButton('exportPngMap','PNG thường',()=>run(()=>exportPng(null,'PNG thường','ban-do-viet-nam.png')));
+  replaceButton('exportPngMap','PNG thường',()=>run(()=>exportPng(null,'PNG thường',regionalFrame()?'ban-do-viet-nam-dong-nam-a.png':'ban-do-viet-nam.png')));
   replaceButton('exportPdfMap','PDF Vector',()=>run(exportVectorPdf));
   replaceButton('exportAll','SVG tự nhúng ảnh',()=>run(exportEmbeddedSvg));
-  const hi=document.createElement('div');hi.className='row';hi.innerHTML='<button id="exportPng4K" class="btn primary" type="button">PNG 4K</button><button id="exportPng8K" class="btn primary" type="button">PNG 8K</button>';
+
+  const hi=document.createElement('div');
+  hi.className='row';
+  hi.innerHTML='<button id="exportPng4K" class="btn primary" type="button">PNG 4K</button><button id="exportPng8K" class="btn primary" type="button">PNG 8K</button>';
   firstRow.insertAdjacentElement('afterend',hi);
-  $('exportPng4K').addEventListener('click',()=>run(()=>exportPng(3840,'PNG 4K','ban-do-viet-nam-4k.png')));
-  $('exportPng8K').addEventListener('click',()=>run(()=>exportPng(7680,'PNG 8K','ban-do-viet-nam-8k.png')));
-  const group=STATUS()?.closest('.group'),tip=group?.querySelector('.tip');
-  if(tip)tip.textContent='PNG thường/4K/8K xuất bản đồ theo góc zoom hiện tại. SVG tự nhúng ảnh tạo file độc lập. PDF Vector giữ ranh giới, đường, chữ và shape dạng vector; ảnh chèn vẫn giữ theo chất lượng ảnh gốc. PNG/PDF full web cũ vẫn dùng để xuất toàn bộ giao diện dài.';
-  status('Sẵn sàng: PNG thường / PNG 4K / PNG 8K / SVG tự nhúng ảnh / PDF Vector.');
+  $('exportPng4K').addEventListener('click',()=>run(()=>exportPng(3840,'PNG 4K',regionalFrame()?'ban-do-viet-nam-dong-nam-a-4k.png':'ban-do-viet-nam-4k.png')));
+  $('exportPng8K').addEventListener('click',()=>run(()=>exportPng(7680,'PNG 8K',regionalFrame()?'ban-do-viet-nam-dong-nam-a-8k.png':'ban-do-viet-nam-8k.png')));
+
+  const group=STATUS()?.closest('.group');
+  if(group&&!$('exportRegionalFrame')){
+    const frame=document.createElement('div');
+    frame.style.cssText='margin-top:8px;padding:8px;border:1px solid #c9ddea;border-radius:9px;background:#f4fbff';
+    frame.innerHTML='<label class="check" style="margin-top:0"><input id="exportRegionalFrame" type="checkbox" checked> <b>Xuất khung Đông Nam Á mở rộng</b></label><div style="font-size:9.5px;color:#62717b;margin-top:5px;line-height:1.45">Bật: tự mở rộng biển và đất liền từ Myanmar/Ấn Độ phía tây đến Philippines/Indonesia phía đông, tránh ảnh bị cụt. Tắt: xuất theo góc nhìn Việt Nam hiện tại.</div>';
+    STATUS().insertAdjacentElement('beforebegin',frame);
+    $('exportRegionalFrame')?.addEventListener('change',()=>{
+      status($('exportRegionalFrame').checked?'Khung Đông Nam Á mở rộng đang bật. PNG/SVG/PDF sẽ không bị thiếu biển và đất liền xung quanh.':'Khung Đông Nam Á đã tắt. Xuất theo zoom/pan Việt Nam hiện tại.');
+    });
+  }
+
+  const tip=group?.querySelector('.tip');
+  if(tip)tip.textContent='Mặc định bật “Khung Đông Nam Á mở rộng”: PNG thường/4K/8K, SVG và PDF Vector sẽ tự nới biển + đất liền, không phụ thuộc zoom hiện tại. Tắt tùy chọn này nếu chỉ muốn xuất cận cảnh Việt Nam. PDF Vector giữ ranh giới, đường, chữ và shape ở dạng vector.';
+  status('Sẵn sàng xuất. Mặc định dùng khung Đông Nam Á mở rộng để không bị thiếu biển/đất liền.');
 }
 
 injectUi();
