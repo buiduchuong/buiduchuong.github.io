@@ -6,7 +6,6 @@ window.__VN_NEIGHBOR_COUNTRY_OUTLINES=true;
 const NS='http://www.w3.org/2000/svg';
 const viewport=document.getElementById('viewport');
 const mapLayer=document.getElementById('mapLayer');
-const lineLayer=document.getElementById('lineLayer');
 if(!viewport||!mapLayer)return;
 
 // Giữ nguyên phép chiếu của editor để tỉnh/thành, tuyến và icon Việt Nam không bị lệch.
@@ -33,7 +32,8 @@ const DRAW_BOUNDS={minLon:87.5,maxLon:145.5,minLat:-13.5,maxLat:31.5};
 const GEOBOUNDARIES_API='https://www.geoboundaries.org/api/current/gbOpen';
 const REGIONAL_URL='https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
 
-// ADM1: Trung Quốc/Lào/Campuchia dùng file local; các nước còn lại dùng geoBoundaries simplified.
+// Chỉ lấy ADM1 (tỉnh/bang/vùng cấp 1). Không hiện tên, không tô màu, không có viền quốc gia riêng.
+// Trung Quốc/Lào/Campuchia dùng file local để tải nhanh; các nước Đông Nam Á khác lấy geoBoundaries simplified.
 const ADM1_SOURCES=[
   {id:'CHN',name:'Trung Quốc',url:'map-assets/neighbors/CHN-ADM1.geojson',local:true},
   {id:'LAO',name:'Lào',url:'map-assets/neighbors/LAO-ADM1.geojson',local:true},
@@ -45,11 +45,13 @@ const ADM1_SOURCES=[
   {id:'BRN',name:'Brunei'},
   {id:'IDN',name:'Indonesia'},
   {id:'PHL',name:'Philippines'},
-  {id:'TLS',name:'Timor-Leste'},
-  {id:'BGD',name:'Bangladesh'},
-  {id:'IND',name:'Ấn Độ'}
+  {id:'TLS',name:'Timor-Leste'}
 ];
-const REGION_COUNTRIES=new Set(['VNM','CHN','LAO','KHM','THA','MMR','MYS','SGP','BRN','IDN','PHL','TLS','BGD','IND']);
+
+// Các mảng đất trắng chỉ dùng để che nền biển; hoàn toàn không vẽ viền quốc gia.
+const REGION_COUNTRIES=new Set([
+  'VNM','CHN','LAO','KHM','THA','MMR','MYS','SGP','BRN','IDN','PHL','TLS','BGD','IND'
+]);
 
 const el=(tag,a={})=>{const n=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>n.setAttribute(k,v));return n};
 function ringPath(ring){
@@ -99,38 +101,34 @@ async function fetchFirstJson(urls,cfg){
   throw new Error(`${cfg.name}: ${lastErr?.message||'không tải được dữ liệu'}`);
 }
 
-// Dọn lớp cũ từ cache/phiên trước.
+// Dọn sạch mọi lớp viền quốc gia cũ để không còn các đường to, thô cứng từ cache/phiên trước.
 document.getElementById('internationalBorderLayer')?.remove();
 document.getElementById('regionalLandLayer')?.remove();
 document.getElementById('regionalNationalBorderLayer')?.remove();
+document.getElementById('neighborCountryOutlineLayer')?.remove();
 
+// Nền đất trắng không viền, nằm dưới toàn bộ ranh giới hành chính.
 const regionalLandLayer=el('g',{id:'regionalLandLayer','data-export-layer':'regional-land','pointer-events':'none'});
 viewport.insertBefore(regionalLandLayer,mapLayer);
-let adminLayer=document.getElementById('neighborCountryOutlineLayer');
-if(!adminLayer){
-  adminLayer=el('g',{id:'neighborCountryOutlineLayer','data-vn-neighbor-outlines':'1','pointer-events':'none'});
-  viewport.insertBefore(adminLayer,mapLayer);
-}
-const nationalBorderLayer=el('g',{id:'regionalNationalBorderLayer','data-export-layer':'national-borders','pointer-events':'none'});
-viewport.insertBefore(nationalBorderLayer,lineLayer||null);
 
-// Phong cách giống ảnh mẫu: nét hairline xám nhạt, bo tròn, không có cảm giác viền cứng.
-// Không dùng vector-effect="non-scaling-stroke": khi xuất toàn Đông Nam Á nét sẽ tự nhỏ theo tỷ lệ bản đồ.
+// Chỉ một lớp ADM1 cho toàn khu vực. Không có lớp national border riêng nữa.
+const adminLayer=el('g',{id:'neighborCountryOutlineLayer','data-vn-neighbor-outlines':'1','data-export-layer':'regional-adm1','pointer-events':'none'});
+viewport.insertBefore(adminLayer,mapLayer);
+
 function drawRegionalFeature(feature){
   const id=String(feature?.id||'').toUpperCase();
   if(!REGION_COUNTRIES.has(id))return false;
   const g=feature?.geometry;if(!g||!intersectsView(g))return false;
   const d=geometryPath(g);if(!d)return false;
 
+  // Chỉ che biển bằng nền trắng. Không stroke nên không còn đường biên quốc gia to.
   regionalLandLayer.appendChild(el('path',{
-    d,fill:'#ffffff','fill-rule':'evenodd',stroke:'none',
-    class:'regional-country-land','data-country':id
-  }));
-
-  nationalBorderLayer.appendChild(el('path',{
-    d,fill:'none',stroke:'#c1c9cf','stroke-width':'0.56',opacity:'.88',
-    'stroke-linecap':'round','stroke-linejoin':'round','stroke-miterlimit':'1',
-    'shape-rendering':'geometricPrecision',class:'regional-country-border','data-country':id
+    d,
+    fill:'#ffffff',
+    'fill-rule':'evenodd',
+    stroke:'none',
+    class:'regional-country-land',
+    'data-country':id
   }));
   return true;
 }
@@ -139,11 +137,19 @@ function drawAdm1Feature(countryId,feature,index){
   const g=feature?.geometry;if(!g||!intersectsView(g))return false;
   const d=geometryPath(g);if(!d)return false;
 
-  // Các tỉnh/bang của nước khác dùng cùng kiểu nét mảnh và nhẹ như ảnh tham khảo.
+  // Kiểu giống ranh giới tỉnh: chỉ có nét hành chính mảnh, không màu nền và không tên.
+  // Không dùng vector-effect để khi xuất khung Đông Nam Á, nét tự thu nhỏ theo tỷ lệ và không bị thô.
   adminLayer.appendChild(el('path',{
-    d,fill:'none',stroke:'#cbd2d7','stroke-width':'0.40',opacity:'.76',
-    'stroke-linecap':'round','stroke-linejoin':'round','stroke-miterlimit':'1',
-    'shape-rendering':'geometricPrecision',class:'neighbor-admin-region',
+    d,
+    fill:'none',
+    stroke:'#aeb8bf',
+    'stroke-width':'0.72',
+    opacity:'.78',
+    'stroke-linecap':'round',
+    'stroke-linejoin':'round',
+    'stroke-miterlimit':'1',
+    'shape-rendering':'geometricPrecision',
+    class:'neighbor-admin-region',
     'data-country':countryId,
     'data-region':String(feature?.properties?.shapeName||feature?.properties?.name||feature?.properties?.shapeISO||index)
   }));
@@ -165,7 +171,6 @@ async function loadAdm1(cfg){
 }
 async function draw(){
   regionalLandLayer.innerHTML='';
-  nationalBorderLayer.innerHTML='';
   adminLayer.innerHTML='';
 
   let regional=0;
@@ -188,7 +193,6 @@ window.__VN_NEIGHBOR_COUNTRY_OUTLINES_API={
   draw,
   layer:adminLayer,
   regionalLandLayer,
-  nationalBorderLayer,
   sources:ADM1_SOURCES.map(x=>({...x})),
   regionalContext:window.__VN_REGIONAL_CONTEXT,
   getStatus:()=>window.__VN_ADM1_STATUS||null
