@@ -69,6 +69,14 @@ function loadAttractions(){
  s.onerror=()=>console.warn('Không tải được tour-attractions.js');
  document.body.appendChild(s);
 }
+function loadPhuQuocSeaLink(){
+ if(document.getElementById('phuQuocSeaLinkLayer')||document.querySelector('script[data-phuquoc-sea-link="1"]'))return;
+ const s=document.createElement('script');
+ s.src='phuquoc-sea-link.js?v=1';
+ s.dataset.phuquocSeaLink='1';
+ s.onerror=()=>console.warn('Không tải được phuquoc-sea-link.js');
+ document.body.appendChild(s);
+}
 window.__VN_TOUR_DETAIL_POSITION_FIX={apply:()=>applyFoodPositions(true)};
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setTimeout(boot,250);loadAttractions()},{once:true});else{setTimeout(boot,250);loadAttractions()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setTimeout(boot,250);loadAttractions();loadPhuQuocSeaLink()},{once:true});else{setTimeout(boot,250);loadAttractions();loadPhuQuocSeaLink()}
 })();
