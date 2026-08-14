@@ -1,7 +1,7 @@
 (()=>{
 'use strict';
 const NS='http://www.w3.org/2000/svg';
-const STORE='vn-xuyen-viet-attractions-v1';
+const STORE='vn-xuyen-viet-attractions-v2';
 const GEO={minLon:101.7,maxLon:110.7,minLat:7.4,maxLat:23.7};
 const PLOT={x:350,y:18,w:700,h:954};
 
@@ -65,8 +65,8 @@ const project=(lon,lat)=>({x:PLOT.x+(lon-GEO.minLon)/(GEO.maxLon-GEO.minLon)*PLO
 
 let data=load();
 let layer=null;
-function defaults(){return{version:1,show:true,showLabels:false,color:'#f59e0b',size:4.2,labelSize:6.2}}
-function load(){const d=defaults();try{const s=JSON.parse(localStorage.getItem(STORE)||'null');if(s&&s.version===1)return{...d,...s}}catch{}return d}
+function defaults(){return{version:2,show:false,showLabels:false,color:'#f59e0b',size:4.2,labelSize:6.2}}
+function load(){const d=defaults();try{const s=JSON.parse(localStorage.getItem(STORE)||'null');if(s&&s.version===2)return{...d,...s}}catch{}return d}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(data))}catch{}}
 function addTitle(node,text){const t=el('title');t.textContent=text;node.appendChild(t)}
 function ensureLayer(){
@@ -99,23 +99,36 @@ function render(){
  if(!data.show)return;
  ATTRACTIONS.forEach((item,i)=>layer.appendChild(marker(item,i)));
 }
+function syncButton(){
+ const btn=$('toggleAllTourAttractions');
+ const box=$('showTourAttractions');
+ const labels=$('showTourAttractionLabels');
+ if(box)box.checked=data.show;
+ if(labels)labels.checked=data.showLabels;
+ if(btn){
+   btn.textContent=data.show?'Tắt ALL điểm tham quan':'Hiện ALL điểm tham quan';
+   btn.classList.toggle('primary',!data.show);
+   btn.classList.toggle('danger',data.show);
+ }
+}
 function injectUI(){
  const controls=document.querySelector('.controls');
  if(!controls||$('tourAttractionGroup'))return;
  const g=document.createElement('div');g.className='group';g.id='tourAttractionGroup';
  g.innerHTML=`<div class="group-title">Điểm tham quan Xuyên Việt</div>
- <label class="check"><input id="showTourAttractions" type="checkbox" checked> Hiện điểm tham quan</label>
+ <button id="toggleAllTourAttractions" class="btn primary" style="width:100%;margin-bottom:8px">Hiện ALL điểm tham quan</button>
+ <label class="check"><input id="showTourAttractions" type="checkbox"> Hiện điểm tham quan</label>
  <label class="check"><input id="showTourAttractionLabels" type="checkbox"> Hiện tên điểm tham quan</label>
  <div class="row"><div><label>Màu marker</label><input id="tourAttractionColor" type="color" value="#f59e0b"></div><div><label>Kích thước</label><input id="tourAttractionSize" type="number" min="2" max="10" step="0.5" value="4.2"></div></div>
- <div class="tip"><b style="color:#f59e0b">●</b> ${ATTRACTIONS.length} điểm tham quan. Rê chuột vào chấm để xem tên. Có thể bật “Hiện tên điểm tham quan” khi cần xuất bản đồ chi tiết.</div>`;
+ <div class="tip"><b style="color:#f59e0b">●</b> ${ATTRACTIONS.length} điểm tham quan. Mặc định đang ẩn để bản đồ thoáng. Bấm nút ALL để bật/tắt toàn bộ; rê chuột vào chấm để xem tên.</div>`;
  const display=[...controls.children].find(x=>x.querySelector?.('.group-title')?.textContent.includes('Hiển thị & lưu'));
  if(display)controls.insertBefore(g,display);else controls.appendChild(g);
- $('showTourAttractions').checked=data.show;
- $('showTourAttractionLabels').checked=data.showLabels;
  $('tourAttractionColor').value=data.color;
  $('tourAttractionSize').value=data.size;
- $('showTourAttractions').addEventListener('change',e=>{data.show=e.target.checked;save();render()});
- $('showTourAttractionLabels').addEventListener('change',e=>{data.showLabels=e.target.checked;save();render()});
+ syncButton();
+ $('toggleAllTourAttractions').addEventListener('click',()=>{data.show=!data.show;if(!data.show)data.showLabels=false;save();render();syncButton()});
+ $('showTourAttractions').addEventListener('change',e=>{data.show=e.target.checked;if(!data.show)data.showLabels=false;save();render();syncButton()});
+ $('showTourAttractionLabels').addEventListener('change',e=>{data.showLabels=e.target.checked;if(data.showLabels)data.show=true;save();render();syncButton()});
  $('tourAttractionColor').addEventListener('input',e=>{data.color=e.target.value;save();render()});
  $('tourAttractionSize').addEventListener('input',e=>{data.size=Math.max(2,Math.min(10,Number(e.target.value)||4.2));save();render()});
 }
