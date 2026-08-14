@@ -11,8 +11,8 @@ if(!viewport||!mapLayer)return;
 // Cùng phép chiếu đang dùng trong editor.js.
 const GEO={minLon:101.7,maxLon:110.7,minLat:7.4,maxLat:23.7};
 const PLOT={x:350,y:18,w:700,h:954};
-// Chỉ giữ các vùng lân cận Việt Nam để giống bản đồ hành chính nền tham khảo.
-const DRAW_BOUNDS={minLon:99.2,maxLon:111.4,minLat:7.0,maxLat:25.2};
+// Giữ vùng lân cận rộng hơn một chút để khi xuất ảnh/PDF không bị hụt đường biên.
+const DRAW_BOUNDS={minLon:98.9,maxLon:111.8,minLat:6.8,maxLat:25.5};
 
 // geoBoundaries ADM1 simplified: các tỉnh/vùng cấp 1 của nước lân cận.
 const SOURCES=[
@@ -66,9 +66,12 @@ if(!layer){
 function drawFeature(countryId,feature,index){
   const g=feature?.geometry;if(!g||!intersectsView(g))return false;
   const d=geometryPath(g);if(!d)return false;
-  // Giống ảnh tham khảo: không tô màu, chỉ các đường ranh giới hành chính xám rất nhạt.
+  // Tô đất trắng để phần biển xanh không tràn lên lãnh thổ lân cận.
+  // Viền được tăng độ dày và tương phản để xuất PNG/PDF vẫn rõ ràng.
   layer.appendChild(el('path',{
-    d,fill:'none',stroke:'#969fa8','stroke-width':'1.08',opacity:'.82',
+    d,
+    fill:'#ffffff','fill-rule':'evenodd',
+    stroke:'#8a96a1','stroke-width':'1.55',opacity:'.96',
     'stroke-linecap':'round','stroke-linejoin':'round','vector-effect':'non-scaling-stroke',
     'shape-rendering':'geometricPrecision',class:'neighbor-admin-region',
     'data-country':countryId,'data-region':String(feature?.properties?.shapeName||feature?.properties?.name||index)
