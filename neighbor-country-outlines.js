@@ -8,6 +8,19 @@ const viewport=document.getElementById('viewport');
 const mapLayer=document.getElementById('mapLayer');
 if(!viewport||!mapLayer)return;
 
+// Luôn giữ bảng GHI CHÚ ở lớp trên cùng của SVG, không bị bản đồ/ảnh/icon/đường tuyến che.
+function keepNoteOverlayOnTop(){
+  const noteLayer=document.getElementById('pickupLayer');
+  const root=noteLayer?.parentNode;
+  if(root&&root.lastElementChild!==noteLayer)root.appendChild(noteLayer);
+}
+keepNoteOverlayOnTop();
+const noteOverlayRoot=document.getElementById('pickupLayer')?.parentNode;
+if(noteOverlayRoot&&window.MutationObserver){
+  const noteOverlayObserver=new MutationObserver(()=>keepNoteOverlayOnTop());
+  noteOverlayObserver.observe(noteOverlayRoot,{childList:true});
+}
+
 // Giữ nguyên phép chiếu của editor để tỉnh/thành, tuyến và icon Việt Nam không bị lệch.
 const GEO={minLon:101.7,maxLon:110.7,minLat:7.4,maxLat:23.7};
 const PLOT={x:350,y:18,w:700,h:954};
