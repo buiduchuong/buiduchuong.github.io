@@ -144,9 +144,10 @@ function drawRegionalFeature(feature){
     class:'regional-country-land','data-country':id
   }));
 
+  // Viền quốc gia mảnh, chỉ nhỉnh hơn đường ADM1 một chút để toàn bản đồ thanh thoát.
   nationalBorderLayer.appendChild(el('path',{
-    d,fill:'none',stroke:id==='VNM'?'#465b68':'#687883',
-    'stroke-width':id==='VNM'?'2.55':'1.85',opacity:id==='VNM'?'1':'.96',
+    d,fill:'none',stroke:id==='VNM'?'#556b76':'#78858d',
+    'stroke-width':id==='VNM'?'1.05':'0.88',opacity:id==='VNM'?'.96':'.88',
     'stroke-linecap':'round','stroke-linejoin':'round','vector-effect':'non-scaling-stroke',
     'shape-rendering':'geometricPrecision',class:'regional-country-border','data-country':id
   }));
@@ -157,10 +158,10 @@ function drawAdm1Feature(countryId,feature,index){
   const g=feature?.geometry;if(!g||!intersectsView(g))return false;
   const d=geometryPath(g);if(!d)return false;
 
-  // Một phong cách ADM1 duy nhất cho toàn khu vực: nét xám nhỏ, mềm, không lấn át Việt Nam.
-  // opacity thấp giúp các cạnh chung bị vẽ chồng vẫn không quá đậm khi xuất 4K/8K/PDF.
+  // Ranh giới ADM1 rất mảnh, gần với độ dày viền tỉnh Việt Nam ban đầu.
+  // Nét xám nhẹ giúp các cạnh chung bị vẽ chồng vẫn không thành đường đậm khi xuất 4K/8K/PDF.
   adminLayer.appendChild(el('path',{
-    d,fill:'none',stroke:'#9da8b0','stroke-width':'0.84',opacity:'.68',
+    d,fill:'none',stroke:'#a4adb4','stroke-width':'0.52',opacity:'.64',
     'stroke-linecap':'round','stroke-linejoin':'round','vector-effect':'non-scaling-stroke',
     'shape-rendering':'geometricPrecision',class:'neighbor-admin-region',
     'data-country':countryId,'data-region':String(feature?.properties?.shapeName||feature?.properties?.name||feature?.properties?.shapeISO||index)
