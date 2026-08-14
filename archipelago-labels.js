@@ -26,15 +26,17 @@ if(seaStops[1]){
 const canvas=document.getElementById('canvas');
 if(canvas)canvas.style.background='#ffffff';
 
-// Làm nét tỉnh/thành và đường biên mượt hơn khi phóng lớn hoặc xuất 4K/8K/PDF.
+// Khôi phục phong cách đường ranh giới mảnh như bản đồ tỉnh ban đầu.
+// Ranh giới hành chính nội bộ rất mảnh; biên quốc gia chỉ nhỉnh hơn một chút.
 if(!document.getElementById('map-polish-style')){
   const style=document.createElement('style');
   style.id='map-polish-style';
   style.textContent=`
-    #mapSvg .province{stroke-width:1.14px!important;shape-rendering:geometricPrecision;stroke-linecap:round;stroke-linejoin:round}
-    #mapSvg .province.active{stroke-width:2.35px!important}
-    #neighborCountryOutlineLayer .neighbor-admin-region{shape-rendering:geometricPrecision}
-    #regionalNationalBorderLayer .regional-country-border{shape-rendering:geometricPrecision}
+    #mapSvg .province{stroke-width:.88px!important;shape-rendering:geometricPrecision;stroke-linecap:round;stroke-linejoin:round}
+    #mapSvg .province.active{stroke-width:1.7px!important}
+    #neighborCountryOutlineLayer .neighbor-admin-region{stroke-width:.52px!important;opacity:.64!important;shape-rendering:geometricPrecision;stroke-linecap:round;stroke-linejoin:round}
+    #regionalNationalBorderLayer .regional-country-border{stroke-width:.88px!important;opacity:.88!important;shape-rendering:geometricPrecision;stroke-linecap:round;stroke-linejoin:round}
+    #regionalNationalBorderLayer .regional-country-border[data-country="VNM"]{stroke-width:1.05px!important;opacity:.96!important}
     #regionalLandLayer .regional-country-land{shape-rendering:geometricPrecision}
   `;
   document.head.appendChild(style);
