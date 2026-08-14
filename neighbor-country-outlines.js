@@ -17,12 +17,13 @@ const project=([lon,lat])=>[
   PLOT.y+(GEO.maxLat-lat)/(GEO.maxLat-GEO.minLat)*PLOT.h
 ];
 
-// Khung Đông Nam Á mở rộng dùng riêng cho xuất PNG/SVG/PDF.
-// Vẫn giữ giao diện editor gần Việt Nam; khi xuất sẽ tự mở rộng ra biển + đất liền xung quanh.
-const REGION_GEO={minLon:90,maxLon:130,minLat:-12,maxLat:30};
+// Khung toàn Đông Nam Á dùng riêng cho xuất PNG/SVG/PDF.
+// Phủ Myanmar/Thái Lan/Đông Dương, Malaysia-Singapore, toàn Indonesia, Brunei,
+// Philippines và một phần nam Trung Quốc/Ấn Độ để ảnh xuất luôn có dư biển + đất liền.
+const REGION_GEO={minLon:88,maxLon:145,minLat:-13,maxLat:31};
 const nw=project([REGION_GEO.minLon,REGION_GEO.maxLat]);
 const se=project([REGION_GEO.maxLon,REGION_GEO.minLat]);
-const margin=48;
+const margin=52;
 const REGION_VIEWBOX=[
   nw[0]-margin,
   nw[1]-margin,
@@ -36,7 +37,7 @@ window.__VN_REGIONAL_CONTEXT={
 };
 
 // Ranh giới ADM1 chi tiết hiện có trong repo.
-const DRAW_BOUNDS={minLon:89.5,maxLon:130.5,minLat:-12.5,maxLat:30.5};
+const DRAW_BOUNDS={minLon:87.5,maxLon:145.5,minLat:-13.5,maxLat:31.5};
 const ADM1_SOURCES=[
   {id:'CHN',name:'Trung Quốc',url:'map-assets/neighbors/CHN-ADM1.geojson'},
   {id:'LAO',name:'Lào',url:'map-assets/neighbors/LAO-ADM1.geojson'},
