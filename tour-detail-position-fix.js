@@ -64,7 +64,7 @@ function boot(){tries++;if(attach())return;if(tries<180)setTimeout(boot,120)}
 function loadAttractions(){
  if(document.getElementById('tourAttractionLayer')||document.querySelector('script[data-xv-attractions="1"]'))return;
  const s=document.createElement('script');
- s.src='tour-attractions.js?v=1';
+ s.src='tour-attractions.js?v=2';
  s.dataset.xvAttractions='1';
  s.onerror=()=>console.warn('Không tải được tour-attractions.js');
  document.body.appendChild(s);
