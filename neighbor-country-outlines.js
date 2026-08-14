@@ -32,8 +32,8 @@ const DRAW_BOUNDS={minLon:87.5,maxLon:145.5,minLat:-13.5,maxLat:31.5};
 const GEOBOUNDARIES_API='https://www.geoboundaries.org/api/current/gbOpen';
 const REGIONAL_URL='https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
 
-// ADM1 = tỉnh/bang/vùng cấp 1. Không hiện tên, không tô màu.
-// Trung Quốc/Lào/Campuchia dùng file local; các nước Đông Nam Á khác lấy geoBoundaries simplified.
+// Chỉ lấy ADM1 (tỉnh/bang/vùng cấp 1). Không hiện tên, không tô màu, không có viền quốc gia riêng.
+// Trung Quốc/Lào/Campuchia dùng file local để tải nhanh; các nước Đông Nam Á khác lấy geoBoundaries simplified.
 const ADM1_SOURCES=[
   {id:'CHN',name:'Trung Quốc',url:'map-assets/neighbors/CHN-ADM1.geojson',local:true},
   {id:'LAO',name:'Lào',url:'map-assets/neighbors/LAO-ADM1.geojson',local:true},
@@ -48,6 +48,7 @@ const ADM1_SOURCES=[
   {id:'TLS',name:'Timor-Leste'}
 ];
 
+// Các mảng đất trắng chỉ dùng để che nền biển; hoàn toàn không vẽ viền quốc gia.
 const REGION_COUNTRIES=new Set([
   'VNM','CHN','LAO','KHM','THA','MMR','MYS','SGP','BRN','IDN','PHL','TLS','BGD','IND'
 ]);
@@ -100,23 +101,19 @@ async function fetchFirstJson(urls,cfg){
   throw new Error(`${cfg.name}: ${lastErr?.message||'không tải được dữ liệu'}`);
 }
 
-// Xóa sạch lớp cũ từ cache/phiên trước.
+// Dọn sạch mọi lớp viền quốc gia cũ để không còn các đường to, thô cứng từ cache/phiên trước.
 document.getElementById('internationalBorderLayer')?.remove();
 document.getElementById('regionalLandLayer')?.remove();
 document.getElementById('regionalNationalBorderLayer')?.remove();
 document.getElementById('neighborCountryOutlineLayer')?.remove();
 
-// Nền đất trắng, không màu và không tên.
+// Nền đất trắng không viền, nằm dưới toàn bộ ranh giới hành chính.
 const regionalLandLayer=el('g',{id:'regionalLandLayer','data-export-layer':'regional-land','pointer-events':'none'});
 viewport.insertBefore(regionalLandLayer,mapLayer);
 
-// Lớp ranh giới tỉnh/bang.
+// Chỉ một lớp ADM1 cho toàn khu vực. Không có lớp national border riêng nữa.
 const adminLayer=el('g',{id:'neighborCountryOutlineLayer','data-vn-neighbor-outlines':'1','data-export-layer':'regional-adm1','pointer-events':'none'});
 viewport.insertBefore(adminLayer,mapLayer);
-
-// Viền ngoài quốc gia rất mảnh, cùng phong cách xám nhạt như ảnh mẫu — không còn viền to/thô.
-const nationalBorderLayer=el('g',{id:'regionalNationalBorderLayer','data-export-layer':'regional-national-outline','pointer-events':'none'});
-viewport.insertBefore(nationalBorderLayer,mapLayer);
 
 function drawRegionalFeature(feature){
   const id=String(feature?.id||'').toUpperCase();
@@ -124,27 +121,13 @@ function drawRegionalFeature(feature){
   const g=feature?.geometry;if(!g||!intersectsView(g))return false;
   const d=geometryPath(g);if(!d)return false;
 
+  // Chỉ che biển bằng nền trắng. Không stroke nên không còn đường biên quốc gia to.
   regionalLandLayer.appendChild(el('path',{
     d,
     fill:'#ffffff',
     'fill-rule':'evenodd',
     stroke:'none',
     class:'regional-country-land',
-    'data-country':id
-  }));
-
-  // Viền quốc gia giống ảnh tham khảo: xám nhạt, bo tròn, chỉ nhỉnh hơn ranh giới tỉnh một chút.
-  nationalBorderLayer.appendChild(el('path',{
-    d,
-    fill:'none',
-    stroke:'#b6c0c7',
-    'stroke-width':'0.80',
-    opacity:'.92',
-    'stroke-linecap':'round',
-    'stroke-linejoin':'round',
-    'stroke-miterlimit':'1',
-    'shape-rendering':'geometricPrecision',
-    class:'regional-country-border',
     'data-country':id
   }));
   return true;
@@ -154,14 +137,14 @@ function drawAdm1Feature(countryId,feature,index){
   const g=feature?.geometry;if(!g||!intersectsView(g))return false;
   const d=geometryPath(g);if(!d)return false;
 
-  // Ranh giới tỉnh/bang nhỏ hơn viền quốc gia, không tô màu và không tên.
-  // Không dùng vector-effect để khi xuất toàn Đông Nam Á nét tự thu nhỏ, tránh cảm giác thô cứng.
+  // Kiểu giống ranh giới tỉnh: chỉ có nét hành chính mảnh, không màu nền và không tên.
+  // Không dùng vector-effect để khi xuất khung Đông Nam Á, nét tự thu nhỏ theo tỷ lệ và không bị thô.
   adminLayer.appendChild(el('path',{
     d,
     fill:'none',
-    stroke:'#c4ccd1',
-    'stroke-width':'0.56',
-    opacity:'.82',
+    stroke:'#aeb8bf',
+    'stroke-width':'0.72',
+    opacity:'.78',
     'stroke-linecap':'round',
     'stroke-linejoin':'round',
     'stroke-miterlimit':'1',
@@ -189,7 +172,6 @@ async function loadAdm1(cfg){
 async function draw(){
   regionalLandLayer.innerHTML='';
   adminLayer.innerHTML='';
-  nationalBorderLayer.innerHTML='';
 
   let regional=0;
   try{regional=await loadRegional()}catch(err){console.warn('Không tải được nền Đông Nam Á',err)}
@@ -211,7 +193,6 @@ window.__VN_NEIGHBOR_COUNTRY_OUTLINES_API={
   draw,
   layer:adminLayer,
   regionalLandLayer,
-  nationalBorderLayer,
   sources:ADM1_SOURCES.map(x=>({...x})),
   regionalContext:window.__VN_REGIONAL_CONTEXT,
   getStatus:()=>window.__VN_ADM1_STATUS||null
