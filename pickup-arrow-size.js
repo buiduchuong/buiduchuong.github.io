@@ -8,20 +8,24 @@ const DEFAULT_SIZE=1.2;
 const MIN=.4,MAX=4,STEP=.1;
 let size=load();
 let observer=null;
+let scheduled=false;
 function clamp(v){return Math.max(MIN,Math.min(MAX,Number(v)||DEFAULT_SIZE))}
 function load(){try{const v=Number(localStorage.getItem(STORE));return Number.isFinite(v)&&v>=MIN&&v<=MAX?v:DEFAULT_SIZE}catch{return DEFAULT_SIZE}}
 function save(){try{localStorage.setItem(STORE,String(size))}catch{}}
 function apply(){
+ scheduled=false;
  const layer=$('lineLayer');if(!layer)return;
+ const s=String(size);
  layer.querySelectorAll('path[data-id^="route-"]').forEach(p=>{
-  p.setAttribute('stroke-width',String(size));
-  p.dataset.pickupArrowSize=String(size);
+  if(p.getAttribute('stroke-width')!==s)p.setAttribute('stroke-width',s);
+  if(p.dataset.pickupArrowSize!==s)p.dataset.pickupArrowSize=s;
  });
  const range=$('pickupArrowSizeRange'),num=$('pickupArrowSize');
- if(range&&range.value!==String(size))range.value=String(size);
- if(num&&num.value!==String(size))num.value=String(size);
+ if(range&&range.value!==s)range.value=s;
+ if(num&&num.value!==s)num.value=s;
  const value=$('pickupArrowSizeValue');if(value)value.textContent=size.toFixed(1);
 }
+function scheduleApply(){if(scheduled)return;scheduled=true;requestAnimationFrame(apply)}
 function setSize(v){size=clamp(v);save();apply()}
 function inject(){
  if($('pickupArrowSizeGroup'))return true;
@@ -44,7 +48,7 @@ function inject(){
 function observe(){
  const layer=$('lineLayer');if(!layer)return false;
  if(observer)observer.disconnect();
- observer=new MutationObserver(()=>requestAnimationFrame(apply));
+ observer=new MutationObserver(scheduleApply);
  observer.observe(layer,{childList:true,subtree:true,attributes:true,attributeFilter:['stroke-width']});
  return true;
 }
