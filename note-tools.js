@@ -15,8 +15,8 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const el=(tag,a={})=>{const n=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>n.setAttribute(k,String(v)));return n};
 const FONT='Roboto, Arial, "Segoe UI Symbol", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
 const ICON_FONT='Roboto, Arial, "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif';
-const DEFAULT_ICON_COLORS={departure:'#e51d49',xvRoute:'#20a85a',pickupRoute:'#e51d49',order:'#e51d49',food:'#f08a24',visit:'#d24b58',stay:'#3f79c5',other:'#222222'};
-const state={title:'GHI CHÚ',text:'',x:36,y:730,width:365,fontSize:16,bg:'#fff0c9',color:'#222222',border:'#555555',borderWidth:2,iconColors:{...DEFAULT_ICON_COLORS},drag:null,saveTimer:null};
+const DEFAULT_ICON_COLORS={departure:'#e51d49',xvRoute:'#d71945',pickupRoute:'#e51d49',order:'#e51d49',food:'#f08a24',visit:'#d24b58',stay:'#3f79c5',other:'#222222'};
+const state={title:'GHI CHÚ',text:'',x:36,y:730,width:300,fontSize:16,iconScale:1.35,bg:'#fff0c9',color:'#222222',border:'#555555',borderWidth:2,iconColors:{...DEFAULT_ICON_COLORS},drag:null,saveTimer:null};
 let db=null;
 let observer=null;
 
@@ -31,13 +31,16 @@ function normalizeIconColors(v={}){
 }
 function normalize(d={}){
   const old=readEditorPickup();
+  const version=Number(d.version)||0;
+  const rawWidth=Number.isFinite(Number(d.width))?Number(d.width):300;
   return{
     title:String(d.title??'GHI CHÚ').slice(0,120),
     text:String(d.text??''),
     x:Number.isFinite(Number(d.x))?Number(d.x):(Number(old?.x)||36),
     y:Number.isFinite(Number(d.y))?Number(d.y):(Number(old?.y)||730),
-    width:clamp(Number(d.width)||365,220,760),
+    width:clamp(version<3?Math.min(rawWidth,300):rawWidth,180,650),
     fontSize:clamp(Number(d.fontSize)||16,8,32),
+    iconScale:clamp(Number(d.iconScale)||1.35,.8,2.2),
     bg:color(d.bg,'#fff0c9'),
     color:color(d.color,'#222222'),
     border:color(d.border,'#555555'),
@@ -47,7 +50,7 @@ function normalize(d={}){
 }
 function applyData(d){const n=normalize(d);Object.assign(state,n);state.iconColors={...n.iconColors}}
 function loadLocal(){try{const raw=localStorage.getItem(STORE);if(raw)applyData(JSON.parse(raw));else applyData({})}catch{applyData({})}}
-function snapshot(){return{version:2,title:state.title,text:state.text,x:state.x,y:state.y,width:state.width,fontSize:state.fontSize,bg:state.bg,color:state.color,border:state.border,borderWidth:state.borderWidth,iconColors:{...state.iconColors},updatedAt:Date.now()}}
+function snapshot(){return{version:3,title:state.title,text:state.text,x:state.x,y:state.y,width:state.width,fontSize:state.fontSize,iconScale:state.iconScale,bg:state.bg,color:state.color,border:state.border,borderWidth:state.borderWidth,iconColors:{...state.iconColors},updatedAt:Date.now()}}
 
 function openDb(){return new Promise(resolve=>{
   if(!window.indexedDB)return resolve(null);
@@ -121,34 +124,37 @@ function legendInfo(line){
   return null;
 }
 function noteLayout(){
-  const pad=18,titleSize=Math.max(16,state.fontSize+5),lineH=state.fontSize*1.38,maxTextW=state.width-pad*2;
+  const pad=12,titleSize=Math.max(15,state.fontSize+3),lineH=state.fontSize*1.48,maxTextW=state.width-pad*2;
   const body=wrapText(state.text,maxTextW,`${state.fontSize}px ${FONT}`);
   const title=String(state.title||'').trim();
-  const titleBlock=title?titleSize*1.45:0;
+  const titleBlock=title?titleSize*1.22:0;
   const bodyBlock=Math.max(lineH,body.length*lineH);
-  const height=clamp(pad+titleBlock+(title&&state.text?6:0)+bodyBlock+pad,105,760);
+  const height=clamp(pad+titleBlock+(title&&state.text?4:0)+bodyBlock+pad,95,720);
   return{pad,titleSize,lineH,body,title,height};
 }
 function renderLegendLine(g,line,y,L){
   const info=legendInfo(line);
   if(!info)return false;
   const iconColor=state.iconColors[info.kind]||state.iconColors.other;
-  const iconX=L.pad+state.fontSize*.45;
-  const textX=L.pad+state.fontSize*1.7;
+  const scale=state.iconScale;
+  const iconX=L.pad+state.fontSize*.62*scale;
+  const textX=L.pad+state.fontSize*(1.55+.55*scale);
   if(info.type==='line'||info.type==='dash'){
     const y0=y-state.fontSize*.28;
-    g.appendChild(el('line',{x1:L.pad,y1:y0,x2:L.pad+state.fontSize*1.25,y2:y0,stroke:iconColor,'stroke-width':Math.max(2,state.fontSize*.18),'stroke-linecap':'round','stroke-dasharray':info.type==='dash'?`${Math.max(3,state.fontSize*.35)} ${Math.max(2,state.fontSize*.25)}`:''}));
+    g.appendChild(el('line',{x1:L.pad,y1:y0,x2:L.pad+state.fontSize*1.55*scale,y2:y0,stroke:iconColor,'stroke-width':Math.max(2.8,state.fontSize*.22*scale),'stroke-linecap':'round','stroke-dasharray':info.type==='dash'?`${Math.max(4,state.fontSize*.42*scale)} ${Math.max(2.5,state.fontSize*.28*scale)}`:''}));
   }else if(info.type==='food'){
-    const c=el('circle',{cx:iconX,cy:y-state.fontSize*.34,r:state.fontSize*.52,fill:iconColor});g.appendChild(c);
-    const t=el('text',{x:iconX,y:y-state.fontSize*.07,'text-anchor':'middle','font-family':ICON_FONT,'font-size':state.fontSize*.68,'font-weight':900,fill:'#ffffff'});t.textContent='↟';g.appendChild(t);
+    const c=el('circle',{cx:iconX,cy:y-state.fontSize*.34,r:state.fontSize*.58*scale,fill:iconColor});g.appendChild(c);
+    const t=el('text',{x:iconX,y:y-state.fontSize*.03,'text-anchor':'middle','font-family':ICON_FONT,'font-size':state.fontSize*.74*scale,'font-weight':900,fill:'#ffffff'});t.textContent='↟';g.appendChild(t);
   }else if(info.type==='visit'){
-    const r=el('rect',{x:iconX-state.fontSize*.48,y:y-state.fontSize*.82,width:state.fontSize*.96,height:state.fontSize*.9,rx:state.fontSize*.16,fill:iconColor});g.appendChild(r);
-    const t=el('text',{x:iconX,y:y-state.fontSize*.12,'text-anchor':'middle','font-family':ICON_FONT,'font-size':state.fontSize*.68,'font-weight':900,fill:'#ffffff'});t.textContent='⌂';g.appendChild(t);
+    const w=state.fontSize*1.02*scale,h=state.fontSize*.94*scale;
+    const r=el('rect',{x:iconX-w/2,y:y-state.fontSize*.84*scale,width:w,height:h,rx:state.fontSize*.16*scale,fill:iconColor});g.appendChild(r);
+    const t=el('text',{x:iconX,y:y-state.fontSize*.08,'text-anchor':'middle','font-family':ICON_FONT,'font-size':state.fontSize*.72*scale,'font-weight':900,fill:'#ffffff'});t.textContent='⌂';g.appendChild(t);
   }else if(info.type==='stay'){
-    const r=el('rect',{x:iconX-state.fontSize*.5,y:y-state.fontSize*.82,width:state.fontSize,height:state.fontSize*.86,rx:state.fontSize*.12,fill:iconColor});g.appendChild(r);
-    const t=el('text',{x:iconX,y:y-state.fontSize*.14,'text-anchor':'middle','font-family':ICON_FONT,'font-size':state.fontSize*.58,'font-weight':900,fill:'#ffffff'});t.textContent='H';g.appendChild(t);
+    const w=state.fontSize*1.04*scale,h=state.fontSize*.9*scale;
+    const r=el('rect',{x:iconX-w/2,y:y-state.fontSize*.82*scale,width:w,height:h,rx:state.fontSize*.13*scale,fill:iconColor});g.appendChild(r);
+    const t=el('text',{x:iconX,y:y-state.fontSize*.1,'text-anchor':'middle','font-family':ICON_FONT,'font-size':state.fontSize*.64*scale,'font-weight':900,fill:'#ffffff'});t.textContent='H';g.appendChild(t);
   }else{
-    const t=el('text',{x:iconX,y,'text-anchor':'middle','font-family':ICON_FONT,'font-size':state.fontSize,'font-weight':900,fill:iconColor});t.textContent=info.symbol;t.setAttribute('style','font-variant-emoji:text');g.appendChild(t);
+    const t=el('text',{x:iconX,y:y+state.fontSize*.06,'text-anchor':'middle','font-family':ICON_FONT,'font-size':state.fontSize*.98*scale,'font-weight':900,fill:iconColor});t.textContent=info.symbol;t.setAttribute('style','font-variant-emoji:text');g.appendChild(t);
   }
   const tx=el('text',{x:textX,y,'font-family':FONT,'font-size':state.fontSize,'font-weight':500,fill:state.color});tx.textContent=info.rest||' ';g.appendChild(tx);
   return true;
@@ -156,12 +162,12 @@ function renderLegendLine(g,line,y,L){
 function render(){
   if(!showToggle.checked){layer.replaceChildren();return}
   const L=noteLayout(),g=el('g',{class:'pickup-card note-card','data-note-owned':'1',transform:`translate(${state.x} ${state.y})`});
-  g.appendChild(el('rect',{x:0,y:0,width:state.width,height:L.height,rx:8,ry:8,fill:state.bg,stroke:state.border,'stroke-width':state.borderWidth}));
+  g.appendChild(el('rect',{x:0,y:0,width:state.width,height:L.height,rx:7,ry:7,fill:state.bg,stroke:state.border,'stroke-width':state.borderWidth}));
   let y=L.pad;
   if(L.title){
     y+=L.titleSize;
     const t=el('text',{x:L.pad,y,'font-family':FONT,'font-size':L.titleSize,'font-weight':800,fill:state.color});t.textContent=L.title;g.appendChild(t);
-    y+=6;
+    y+=4;
   }
   const firstY=y+state.fontSize;
   let plainGroup=null;
@@ -188,14 +194,16 @@ function endDrag(e){
 function centerNote(){const r=canvas.getBoundingClientRect(),p=svg.createSVGPoint();p.x=r.left+r.width/2;p.y=r.top+r.height/2;const q=p.matrixTransform(svg.getScreenCTM().inverse()),L=noteLayout();state.x=q.x-state.width/2;state.y=q.y-L.height/2;save();render();syncUI()}
 function syncPosition(){if($('noteX'))$('noteX').value=Math.round(state.x);if($('noteY'))$('noteY').value=Math.round(state.y)}
 function syncUI(){
-  const vals={noteTitle:state.title,noteText:state.text,noteWidth:Math.round(state.width),noteFontSize:state.fontSize,noteBg:state.bg,noteColor:state.color,noteBorder:state.border,noteBorderWidth:state.borderWidth,noteX:Math.round(state.x),noteY:Math.round(state.y),noteIconDeparture:state.iconColors.departure,noteIconXvRoute:state.iconColors.xvRoute,noteIconPickupRoute:state.iconColors.pickupRoute,noteIconOrder:state.iconColors.order,noteIconFood:state.iconColors.food,noteIconVisit:state.iconColors.visit,noteIconStay:state.iconColors.stay};
+  const iconPct=Math.round(state.iconScale*100);
+  const vals={noteTitle:state.title,noteText:state.text,noteWidth:Math.round(state.width),noteFontSize:state.fontSize,noteIconScaleRange:iconPct,noteIconScale:iconPct,noteBg:state.bg,noteColor:state.color,noteBorder:state.border,noteBorderWidth:state.borderWidth,noteX:Math.round(state.x),noteY:Math.round(state.y),noteIconDeparture:state.iconColors.departure,noteIconXvRoute:state.iconColors.xvRoute,noteIconPickupRoute:state.iconColors.pickupRoute,noteIconOrder:state.iconColors.order,noteIconFood:state.iconColors.food,noteIconVisit:state.iconColors.visit,noteIconStay:state.iconColors.stay};
   Object.entries(vals).forEach(([id,v])=>{const n=$(id);if(n&&n.value!==String(v))n.value=v});
 }
 function setField(key,v){
   if(key==='title')state.title=String(v).slice(0,120);
   else if(key==='text')state.text=String(v);
-  else if(key==='width')state.width=clamp(Number(v)||365,220,760);
+  else if(key==='width')state.width=clamp(Number(v)||300,180,650);
   else if(key==='fontSize')state.fontSize=clamp(Number(v)||16,8,32);
+  else if(key==='iconScale')state.iconScale=clamp((Number(v)||135)/100,.8,2.2);
   else if(['bg','color','border'].includes(key))state[key]=color(v,state[key]);
   else if(key.startsWith('icon.')){const k=key.slice(5);if(k in state.iconColors)state.iconColors[k]=color(v,state.iconColors[k]);else return}
   else if(key==='borderWidth')state.borderWidth=clamp(Number(v)||0,0,8);
@@ -212,9 +220,9 @@ function injectUI(){
   renameOldToggle();
   const target=showToggle.closest('.group');if(!target)return;
   const group=document.createElement('div');group.className='group';group.id='noteEditorGroup';
-  group.innerHTML=`<div class="group-title">Ghi chú</div><label>Tiêu đề</label><input id="noteTitle" type="text" placeholder="GHI CHÚ"><label style="margin-top:8px">Nội dung ghi chú</label><textarea id="noteText" rows="7" placeholder="Dán hoặc nhập ghi chú tại đây…\nHỗ trợ: ★ • → ✓ © ™ ⏰ 📍 😀"></textarea><div class="tip">Có thể Ctrl+V nội dung từ Word, Zalo, Excel hoặc website. Ký tự Unicode, dấu, emoji và ký hiệu đặc biệt được giữ nguyên.</div><details id="noteLegendColors" style="margin-top:9px"><summary style="cursor:pointer;font-size:11px;font-weight:800;color:#5d554e">Màu icon / ký hiệu trong ghi chú</summary><div class="row"><div><label>★ Điểm tập kết</label><input id="noteIconDeparture" type="color"></div><div><label>━━ Tuyến Xuyên Việt</label><input id="noteIconXvRoute" type="color"></div></div><div class="row"><div><label>--- Tuyến về Hà Nội</label><input id="noteIconPickupRoute" type="color"></div><div><label>① Thứ tự hành trình</label><input id="noteIconOrder" type="color"></div></div><div class="row"><div><label>Ăn uống</label><input id="noteIconFood" type="color"></div><div><label>Tham quan</label><input id="noteIconVisit" type="color"></div></div><div class="row"><div><label>Lưu trú</label><input id="noteIconStay" type="color"></div><div><label>&nbsp;</label><button id="resetNoteIconColors" class="btn" type="button" style="width:100%">Màu mặc định</button></div></div><div class="tip">Các dòng bắt đầu bằng ★, ━━, ---, ①, 🍴/🍽, 🏛/🛕 hoặc 🏨/🛏 sẽ tự tách ký hiệu ra để tô màu riêng; phần chữ vẫn dùng “Màu chữ”.</div></details><div class="row"><div><label>Chiều rộng</label><input id="noteWidth" type="number" min="220" max="760" step="5"></div><div><label>Cỡ chữ</label><input id="noteFontSize" type="number" min="8" max="32" step="1"></div></div><div class="row"><div><label>Màu nền</label><input id="noteBg" type="color"></div><div><label>Màu chữ</label><input id="noteColor" type="color"></div></div><div class="row"><div><label>Màu viền</label><input id="noteBorder" type="color"></div><div><label>Độ dày viền</label><input id="noteBorderWidth" type="number" min="0" max="8" step="0.5"></div></div><div class="row"><div><label>X</label><input id="noteX" type="number" step="1"></div><div><label>Y</label><input id="noteY" type="number" step="1"></div></div><div class="row"><button id="centerNote" class="btn">Đưa vào giữa</button><button id="clearNote" class="btn danger">Xóa nội dung</button></div><div class="tip">Ô ghi chú tự tăng chiều cao theo nội dung và có thể kéo trực tiếp trên bản đồ. Ghi chú được xuất cùng SVG / PNG / PDF.</div>`;
+  group.innerHTML=`<div class="group-title">Ghi chú</div><label>Tiêu đề</label><input id="noteTitle" type="text" placeholder="GHI CHÚ"><label style="margin-top:8px">Nội dung ghi chú</label><textarea id="noteText" rows="7" placeholder="Dán hoặc nhập ghi chú tại đây…\nHỗ trợ: ★ • → ✓ © ™ ⏰ 📍 😀"></textarea><div class="tip">Có thể Ctrl+V nội dung từ Word, Zalo, Excel hoặc website. Ký tự Unicode, dấu, emoji và ký hiệu đặc biệt được giữ nguyên.</div><details id="noteLegendColors" style="margin-top:9px"><summary style="cursor:pointer;font-size:11px;font-weight:800;color:#5d554e">Màu icon / ký hiệu trong ghi chú</summary><div class="row"><div><label>★ Điểm tập kết</label><input id="noteIconDeparture" type="color"></div><div><label>━━ Tuyến Xuyên Việt</label><input id="noteIconXvRoute" type="color"></div></div><div class="row"><div><label>--- Tuyến về Hà Nội</label><input id="noteIconPickupRoute" type="color"></div><div><label>① Thứ tự hành trình</label><input id="noteIconOrder" type="color"></div></div><div class="row"><div><label>Ăn uống</label><input id="noteIconFood" type="color"></div><div><label>Tham quan</label><input id="noteIconVisit" type="color"></div></div><div class="row"><div><label>Lưu trú</label><input id="noteIconStay" type="color"></div><div><label>&nbsp;</label><button id="resetNoteIconColors" class="btn" type="button" style="width:100%">Màu mặc định</button></div></div><div class="tip">Các dòng bắt đầu bằng ★, ━━, ---, ①, 🍴/🍽, 🏛/🛕 hoặc 🏨/🛏 sẽ tự tách ký hiệu ra để tô màu riêng; phần chữ vẫn dùng “Màu chữ”.</div></details><div class="row"><div><label>Chiều rộng bảng</label><input id="noteWidth" type="number" min="180" max="650" step="5"></div><div><label>Cỡ chữ</label><input id="noteFontSize" type="number" min="8" max="32" step="1"></div></div><label style="margin-top:8px">Kích thước icon</label><div class="value-line"><input id="noteIconScaleRange" type="range" min="80" max="220" step="5"><input id="noteIconScale" type="number" min="80" max="220" step="5"></div><div class="tip">100% = cỡ cũ. Mặc định mới 135% để icon nổi bật hơn trong bảng nhỏ.</div><div class="row"><div><label>Màu nền</label><input id="noteBg" type="color"></div><div><label>Màu chữ</label><input id="noteColor" type="color"></div></div><div class="row"><div><label>Màu viền</label><input id="noteBorder" type="color"></div><div><label>Độ dày viền</label><input id="noteBorderWidth" type="number" min="0" max="8" step="0.5"></div></div><div class="row"><div><label>X</label><input id="noteX" type="number" step="1"></div><div><label>Y</label><input id="noteY" type="number" step="1"></div></div><div class="row"><button id="centerNote" class="btn">Đưa vào giữa</button><button id="clearNote" class="btn danger">Xóa nội dung</button></div><div class="tip">Ô ghi chú tự tăng chiều cao theo nội dung và có thể kéo trực tiếp trên bản đồ. Ghi chú được xuất cùng SVG / PNG / PDF.</div>`;
   target.insertAdjacentElement('beforebegin',group);
-  [['noteTitle','title'],['noteText','text'],['noteWidth','width'],['noteFontSize','fontSize'],['noteBg','bg'],['noteColor','color'],['noteBorder','border'],['noteBorderWidth','borderWidth'],['noteX','x'],['noteY','y'],['noteIconDeparture','icon.departure'],['noteIconXvRoute','icon.xvRoute'],['noteIconPickupRoute','icon.pickupRoute'],['noteIconOrder','icon.order'],['noteIconFood','icon.food'],['noteIconVisit','icon.visit'],['noteIconStay','icon.stay']].forEach(([id,key])=>$(id)?.addEventListener('input',e=>setField(key,e.target.value)));
+  [['noteTitle','title'],['noteText','text'],['noteWidth','width'],['noteFontSize','fontSize'],['noteIconScaleRange','iconScale'],['noteIconScale','iconScale'],['noteBg','bg'],['noteColor','color'],['noteBorder','border'],['noteBorderWidth','borderWidth'],['noteX','x'],['noteY','y'],['noteIconDeparture','icon.departure'],['noteIconXvRoute','icon.xvRoute'],['noteIconPickupRoute','icon.pickupRoute'],['noteIconOrder','icon.order'],['noteIconFood','icon.food'],['noteIconVisit','icon.visit'],['noteIconStay','icon.stay']].forEach(([id,key])=>$(id)?.addEventListener('input',e=>setField(key,e.target.value)));
   $('resetNoteIconColors')?.addEventListener('click',resetIconColors);
   $('centerNote')?.addEventListener('click',centerNote);
   $('clearNote')?.addEventListener('click',()=>{state.text='';save();render();syncUI();$('noteText')?.focus()});
