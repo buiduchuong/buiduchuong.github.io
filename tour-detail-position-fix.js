@@ -104,7 +104,7 @@ function loadJourneySymbolMenu(){
 function loadPickupArrowSize(){
  if(document.getElementById('pickupArrowSizeGroup')||document.querySelector('script[data-pickup-arrow-size="1"]'))return;
  const s=document.createElement('script');
- s.src='pickup-arrow-size.js?v=2';
+ s.src='pickup-arrow-size.js?v=3';
  s.dataset.pickupArrowSize='1';
  s.onerror=()=>console.warn('Không tải được pickup-arrow-size.js');
  document.body.appendChild(s);
