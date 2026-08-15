@@ -93,11 +93,19 @@ function loadAttractions(){
  s.onerror=()=>console.warn('Không tải được tour-attractions.js');
  document.body.appendChild(s);
 }
+function loadJourneySymbolMenu(){
+ if(document.getElementById('journeySymbolGroup')||document.querySelector('script[data-journey-symbol-menu="1"]'))return;
+ const s=document.createElement('script');
+ s.src='journey-symbol-menu.js?v=1';
+ s.dataset.journeySymbolMenu='1';
+ s.onerror=()=>console.warn('Không tải được journey-symbol-menu.js');
+ document.body.appendChild(s);
+}
 function keepLegacyHidden(){
  hideLegacyDom();
  const target=document.getElementById('viewport')||document.body;
  try{new MutationObserver(()=>hideLegacyDom()).observe(target,{childList:true,subtree:true})}catch{}
 }
 window.__VN_TOUR_DETAIL_POSITION_FIX={apply:()=>applyFoodPositions(true)};
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setTimeout(boot,250);loadAttractions();keepLegacyHidden();ensureStandardRoute()},{once:true});else{setTimeout(boot,250);loadAttractions();keepLegacyHidden();ensureStandardRoute()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();keepLegacyHidden();ensureStandardRoute()},{once:true});else{setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();keepLegacyHidden();ensureStandardRoute()}
 })();
