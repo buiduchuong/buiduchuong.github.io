@@ -53,14 +53,14 @@ function inject(){
     </div>
     <div style="padding:7px 9px;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:rgba(255,255,255,.55);font-size:12px;line-height:1.65">
       <div><b style="color:#f4b400">★</b> Điểm khởi hành</div>
-      <div><b style="color:#d71945">━━━━</b> Tuyến đường bộ</div>
+      <div><b style="color:#d71945;letter-spacing:0">━━━━━━</b> Tuyến hành trình Xuyên Việt</div>
       <div><b style="color:#1677d2">┄ ┄ ┄</b> Tuyến tàu / cano</div>
       <div><b style="color:#d71945">①</b> Số thứ tự hành trình</div>
       <div><b style="color:#f59e0b">●</b> Điểm tham quan</div>
       <div>🍴 Điểm ăn uống &nbsp; 🏛️ Chùa / tâm linh &nbsp; ⛴️ Tàu / cano</div>
       <div><b style="color:#16803a">✓</b> Điểm kết thúc</div>
     </div>
-    ${symbolRow('<span style="color:#d71945">━━━━</span>','Cung đường Xuyên Việt','route')}
+    ${symbolRow('<span style="color:#d71945;letter-spacing:0">━━━━━━</span>','Tuyến hành trình Xuyên Việt','route')}
     ${symbolRow('<span style="color:#d71945">①</span>','Số thứ tự','numbers')}
     ${symbolRow('➜','Mũi tên chỉ hướng','arrows')}
     ${symbolRow('<span style="color:#f59e0b">●</span>','Điểm tham quan','attractions')}
