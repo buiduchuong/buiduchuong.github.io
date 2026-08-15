@@ -124,7 +124,7 @@ function legendInfo(line){
   return null;
 }
 function noteLayout(){
-  const pad=12,titleSize=Math.max(15,state.fontSize+3),lineH=state.fontSize*1.48,maxTextW=state.width-pad*2;
+  const pad=6,titleSize=Math.max(15,state.fontSize+3),lineH=state.fontSize*1.48,maxTextW=state.width-pad*2;
   const body=wrapText(state.text,maxTextW,`${state.fontSize}px ${FONT}`);
   const title=String(state.title||'').trim();
   const titleBlock=title?titleSize*1.22:0;
