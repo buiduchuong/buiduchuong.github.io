@@ -109,12 +109,20 @@ function loadPickupArrowSize(){
  s.onerror=()=>console.warn('Không tải được pickup-arrow-size.js');
  document.body.appendChild(s);
 }
+function loadNoteXvRouteRed(){
+ if(document.querySelector('script[data-note-xv-route-red="1"]'))return;
+ const s=document.createElement('script');
+ s.src='note-xv-route-red.js?v=1';
+ s.dataset.noteXvRouteRed='1';
+ s.onerror=()=>console.warn('Không tải được sửa màu tuyến Xuyên Việt trong ghi chú');
+ document.body.appendChild(s);
+}
 function keepLegacyHidden(){
  hideLegacyDom();
  const target=document.getElementById('viewport')||document.body;
  try{new MutationObserver(()=>hideLegacyDom()).observe(target,{childList:true,subtree:true})}catch{}
 }
-function startAll(){setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();loadPickupArrowSize();keepLegacyHidden();ensureStandardRoute()}
+function startAll(){loadNoteXvRouteRed();setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();loadPickupArrowSize();keepLegacyHidden();ensureStandardRoute()}
 window.__VN_TOUR_DETAIL_POSITION_FIX={apply:()=>applyFoodPositions(true)};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAll,{once:true});else startAll();
 })();
