@@ -101,11 +101,19 @@ function loadJourneySymbolMenu(){
  s.onerror=()=>console.warn('Không tải được journey-symbol-menu.js');
  document.body.appendChild(s);
 }
+function loadPickupArrowSize(){
+ if(document.getElementById('pickupArrowSizeGroup')||document.querySelector('script[data-pickup-arrow-size="1"]'))return;
+ const s=document.createElement('script');
+ s.src='pickup-arrow-size.js?v=2';
+ s.dataset.pickupArrowSize='1';
+ s.onerror=()=>console.warn('Không tải được pickup-arrow-size.js');
+ document.body.appendChild(s);
+}
 function keepLegacyHidden(){
  hideLegacyDom();
  const target=document.getElementById('viewport')||document.body;
  try{new MutationObserver(()=>hideLegacyDom()).observe(target,{childList:true,subtree:true})}catch{}
 }
 window.__VN_TOUR_DETAIL_POSITION_FIX={apply:()=>applyFoodPositions(true)};
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();keepLegacyHidden();ensureStandardRoute()},{once:true});else{setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();keepLegacyHidden();ensureStandardRoute()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();loadPickupArrowSize();keepLegacyHidden();ensureStandardRoute()},{once:true});else{setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();loadPickupArrowSize();keepLegacyHidden();ensureStandardRoute()}
 })();
