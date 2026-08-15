@@ -96,7 +96,7 @@ function loadAttractions(){
 function loadJourneySymbolMenu(){
  if(document.getElementById('journeySymbolGroup')||document.querySelector('script[data-journey-symbol-menu="1"]'))return;
  const s=document.createElement('script');
- s.src='journey-symbol-menu.js?v=1';
+ s.src='journey-symbol-menu.js?v=2';
  s.dataset.journeySymbolMenu='1';
  s.onerror=()=>console.warn('Không tải được journey-symbol-menu.js');
  document.body.appendChild(s);
