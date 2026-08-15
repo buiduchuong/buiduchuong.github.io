@@ -1,45 +1,65 @@
 (()=>{
 'use strict';
 
-// Bảo vệ bước tải 34 GeoJSON: raw.githubusercontent.com đôi lúc giữ request quá lâu.
-// Mỗi request có timeout + retry/fallback; nếu vẫn lỗi editor.js sẽ tự bỏ qua tỉnh đó
-// và tiếp tục tăng tiến độ thay vì kẹt vô hạn ở 25/34, 26/34...
+// Bảo vệ bước tải 34 GeoJSON.
+// Quan trọng: không chỉ timeout phần nhận header, mà buffer TOÀN BỘ body trong timeout.
+// Khi trả Response cho editor.js thì r.json() chỉ parse dữ liệu đã tải xong, không còn chờ mạng.
 if(!window.__VN_GEOJSON_FETCH_GUARD){
   window.__VN_GEOJSON_FETCH_GUARD=true;
   const nativeFetch=window.fetch.bind(window);
   const RAW_PREFIX='https://raw.githubusercontent.com/thanglequoc/vietnamese-provinces-database/master/';
   const CDN_PREFIX='https://cdn.jsdelivr.net/gh/thanglequoc/vietnamese-provinces-database@master/';
   const isGeo=url=>typeof url==='string'&&url.startsWith(RAW_PREFIX)&&url.includes('/json/geojson/')&&url.endsWith('.geojson');
-  const withTimeout=(url,init,ms)=>new Promise((resolve,reject)=>{
+
+  const timeoutError=label=>{const e=new Error(label||'GeoJSON timeout');e.name='TimeoutError';return e};
+  const deadline=(promise,ms,label)=>new Promise((resolve,reject)=>{
+    let settled=false;
+    const timer=setTimeout(()=>{if(settled)return;settled=true;reject(timeoutError(label))},ms);
+    Promise.resolve(promise).then(
+      v=>{if(settled)return;settled=true;clearTimeout(timer);resolve(v)},
+      e=>{if(settled)return;settled=true;clearTimeout(timer);reject(e)}
+    );
+  });
+
+  async function fetchBuffered(url,init={},ms=5000){
     const ctrl=new AbortController();
-    const timer=setTimeout(()=>ctrl.abort(new DOMException('GeoJSON request timeout','TimeoutError')),ms);
     let outerAbort=null;
     if(init?.signal){
-      outerAbort=()=>ctrl.abort(init.signal.reason||new DOMException('Aborted','AbortError'));
+      outerAbort=()=>{try{ctrl.abort(init.signal.reason)}catch{ctrl.abort()}};
       if(init.signal.aborted)outerAbort();else init.signal.addEventListener('abort',outerAbort,{once:true});
     }
-    nativeFetch(url,{...init,signal:ctrl.signal}).then(resolve,reject).finally(()=>{
-      clearTimeout(timer);
-      if(init?.signal&&outerAbort)init.signal.removeEventListener('abort',outerAbort);
-    });
-  });
+    let response;
+    try{
+      response=await deadline(nativeFetch(url,{...init,signal:ctrl.signal}),ms,`GeoJSON fetch timeout: ${url}`);
+      if(!response.ok)throw new Error(`GeoJSON HTTP ${response.status}`);
+      const body=await deadline(response.arrayBuffer(),ms,`GeoJSON body timeout: ${url}`);
+      const headers=new Headers(response.headers);
+      return new Response(body,{status:response.status,statusText:response.statusText,headers});
+    }catch(err){
+      try{ctrl.abort()}catch{}
+      throw err;
+    }finally{
+      if(init?.signal&&outerAbort)try{init.signal.removeEventListener('abort',outerAbort)}catch{}
+    }
+  }
+
   window.fetch=async function(input,init={}){
     const url=typeof input==='string'?input:input?.url;
     if(!isGeo(url))return nativeFetch(input,init);
+
     const fallback=url.replace(RAW_PREFIX,CDN_PREFIX);
+    // Ưu tiên jsDelivr để tránh raw.githubusercontent bị nghẽn; sau đó thử raw GitHub.
+    // Mỗi lượt có hard deadline cho CẢ header và body.
     const attempts=[
-      [url,{...init,cache:'no-store'},5500],
-      [url,{...init,cache:'reload'},5500],
-      [fallback,{...init,cache:'no-store'},6500]
+      [fallback,{...init,cache:'no-store'},4500],
+      [url,{...init,cache:'no-store'},4500]
     ];
     let lastError=null;
-    for(const [u,opt,timeout] of attempts){
-      try{
-        const r=await withTimeout(u,opt,timeout);
-        if(r.ok)return r;
-        lastError=new Error(`GeoJSON HTTP ${r.status}`);
-      }catch(err){lastError=err;console.warn('GeoJSON retry:',u,err?.name||err)}
+    for(const [u,opt,ms] of attempts){
+      try{return await fetchBuffered(u,opt,ms)}
+      catch(err){lastError=err;console.warn('[GeoJSON] thử nguồn khác:',u,err?.name||err?.message||err)}
     }
+    // editor.js đã có try/catch cho từng tỉnh; throw ở đây để worker tăng done và tiếp tục.
     throw lastError||new Error('Không tải được GeoJSON');
   };
 }
