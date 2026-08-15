@@ -83,12 +83,17 @@ function toggleKey(key){const n=control(key);if(!n)return;n.checked=!n.checked;d
 function sync(){
  document.querySelectorAll('#journeySymbolGroup [data-state]').forEach(n=>{
   const key=n.dataset.state,v=getControl(key);
-  if(v===null){n.textContent='N/A';n.style.opacity='.45';return}
-  n.textContent=v?'BẬT':'TẮT';n.style.opacity='1';n.style.color=v?'#287247':'#a33a31';
+  if(v===null){if(n.textContent!=='N/A')n.textContent='N/A';n.style.opacity='.45';return}
+  const text=v?'BẬT':'TẮT';if(n.textContent!==text)n.textContent=text;n.style.opacity='1';n.style.color=v?'#287247':'#a33a31';
  });
  document.querySelectorAll('#journeySymbolGroup .journey-symbol-toggle').forEach(btn=>{
   const v=getControl(btn.dataset.key);btn.disabled=v===null;btn.style.opacity=v===null?'.5':'1';
  });
+}
+let syncQueued=false;
+function scheduleSync(){
+ if(syncQueued)return;syncQueued=true;
+ queueMicrotask(()=>{syncQueued=false;sync()});
 }
 function bind(){
  $('journeySymbolsShowAll')?.addEventListener('click',()=>setAll(true));
@@ -100,8 +105,14 @@ function bind(){
  });
  try{const s=JSON.parse(localStorage.getItem(STORE)||'{}');if(s.open===false){$('journeySymbolBody').hidden=true;$('journeySymbolCollapse').textContent='Mở'}}catch{}
  const controls=document.querySelector('.controls');
- try{new MutationObserver(()=>sync()).observe(controls,{childList:true,subtree:true})}catch{}
- controls.addEventListener('change',()=>setTimeout(sync,0));
+ try{new MutationObserver(records=>{
+  const changedOutsideMenu=records.some(record=>{
+   const target=record.target?.nodeType===1?record.target:record.target?.parentElement;
+   return !target?.closest?.('#journeySymbolGroup');
+  });
+  if(changedOutsideMenu)scheduleSync();
+ }).observe(controls,{childList:true,subtree:true})}catch{}
+ controls.addEventListener('change',scheduleSync);
 }
 let tries=0;
 function boot(){tries++;if(inject())return;if(tries<200)setTimeout(boot,100)}
