@@ -69,7 +69,7 @@ function ensureStandardRoute(){
  const oldDefs=document.getElementById('tourMain35Defs');if(oldDefs)oldDefs.remove();
  const oldGroup=document.getElementById('tourRouteGroup');if(oldGroup)oldGroup.remove();
  if(document.querySelector('script[data-standard38-route="1"]'))return;
- const s=document.createElement('script');s.src='tour-route.js?v=8';s.dataset.standard38Route='1';s.onerror=()=>console.warn('Không tải được tour-route.js bản chuẩn 38 ngày');document.body.appendChild(s);
+ const s=document.createElement('script');s.src='tour-route.js?v=9';s.dataset.standard38Route='1';s.onerror=()=>console.warn('Không tải được tour-route.js bản chuẩn 38 ngày');document.body.appendChild(s);
 }
 function attach(){
  const btn=$('fixTourDetailPositions');
@@ -101,11 +101,20 @@ function loadJourneySymbolMenu(){
  s.onerror=()=>console.warn('Không tải được journey-symbol-menu.js');
  document.body.appendChild(s);
 }
+function loadPickupArrowSize(){
+ if(document.getElementById('pickupArrowSizeControl')||document.querySelector('script[data-pickup-arrow-size="1"]'))return;
+ const s=document.createElement('script');
+ s.src='pickup-arrow-size.js?v=1';
+ s.dataset.pickupArrowSize='1';
+ s.onerror=()=>console.warn('Không tải được pickup-arrow-size.js');
+ document.body.appendChild(s);
+}
 function keepLegacyHidden(){
  hideLegacyDom();
  const target=document.getElementById('viewport')||document.body;
  try{new MutationObserver(()=>hideLegacyDom()).observe(target,{childList:true,subtree:true})}catch{}
 }
+function startAll(){setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();loadPickupArrowSize();keepLegacyHidden();ensureStandardRoute()}
 window.__VN_TOUR_DETAIL_POSITION_FIX={apply:()=>applyFoodPositions(true)};
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();keepLegacyHidden();ensureStandardRoute()},{once:true});else{setTimeout(boot,250);loadAttractions();loadJourneySymbolMenu();keepLegacyHidden();ensureStandardRoute()}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAll,{once:true});else startAll();
 })();
