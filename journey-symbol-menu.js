@@ -16,10 +16,25 @@ const CONTROL_MAP={
  visit:['showTourDetailVisit'],
  legend:['showTourDetailLegend']
 };
-function first(ids){for(const id of ids){const n=$(id);if(n)return n}return null}
+const TEXT_HINTS={
+ route:['hiện cung đường'],numbers:['hiện số thứ tự','hiện số điểm'],arrows:['hiện mũi tên'],
+ attractions:['hiện toàn bộ điểm tham quan','hiện điểm tham quan'],attractionLabels:['hiện tên điểm tham quan'],
+ food:['hiện điểm ăn uống'],temple:['hiện chùa','tâm linh'],boat:['hiện tàu','cano'],visit:['hiện điểm hành trình'],legend:['hiện chú giải']
+};
+function byText(key){
+ const hints=TEXT_HINTS[key]||[];
+ for(const label of document.querySelectorAll('.controls label')){
+  const text=(label.textContent||'').trim().toLowerCase();
+  if(!hints.some(h=>text.includes(h)))continue;
+  const n=label.querySelector('input[type="checkbox"]');if(n)return n;
+ }
+ return null;
+}
+function first(ids,key){for(const id of ids){const n=$(id);if(n)return n}return byText(key)}
+function control(key){return first(CONTROL_MAP[key]||[],key)}
 function dispatch(n){if(!n)return;n.dispatchEvent(new Event('change',{bubbles:true}))}
-function setControl(key,value){const n=first(CONTROL_MAP[key]||[]);if(!n)return false;n.checked=!!value;dispatch(n);return true}
-function getControl(key){const n=first(CONTROL_MAP[key]||[]);return n?!!n.checked:null}
+function setControl(key,value){const n=control(key);if(!n)return false;n.checked=!!value;dispatch(n);return true}
+function getControl(key){const n=control(key);return n?!!n.checked:null}
 function save(){try{localStorage.setItem(STORE,JSON.stringify({open:!$('journeySymbolBody')?.hidden}))}catch{}}
 function symbolRow(symbol,label,key){return `<button type="button" class="btn journey-symbol-toggle" data-key="${key}" style="display:flex;align-items:center;justify-content:flex-start;gap:8px;width:100%;margin-top:6px;text-align:left"><span style="min-width:50px;font-weight:900;text-align:center">${symbol}</span><span style="flex:1">${label}</span><b class="journey-symbol-state" data-state="${key}" style="font-size:11px">—</b></button>`}
 function inject(){
@@ -55,45 +70,38 @@ function inject(){
     ${symbolRow('⛴️','Tàu / cano','boat')}
     ${symbolRow('🖼️','Điểm hành trình nổi bật','visit')}
     ${symbolRow('ℹ️','Chú giải chi tiết','legend')}
-    <div class="tip" style="margin-top:8px">Dùng <b>Tắt tất cả</b> khi cần bản đồ sạch để xem tuyến. Sau đó bật riêng ký hiệu bạn muốn.</div>
+    <div class="tip" style="margin-top:8px">Dùng <b>Tắt tất cả</b> khi cần bản đồ sạch. Sau đó bật riêng ký hiệu cần xem.</div>
   </div>`;
  const route=$('tourRouteGroup');
  if(route&&route.parentNode===controls)controls.insertBefore(g,route.nextSibling);else controls.insertBefore(g,controls.firstChild);
  bind();sync();
  return true;
 }
-function supportedKeys(){return Object.keys(CONTROL_MAP).filter(k=>first(CONTROL_MAP[k]))}
-function setAll(value){
- const keys=supportedKeys();
- for(const k of keys){
-  // Khi tắt ALL, tắt luôn tên điểm. Khi bật ALL, chỉ bật các nhóm thực sự có control.
-  setControl(k,value);
- }
- setTimeout(sync,40);
-}
-function toggleKey(key){const n=first(CONTROL_MAP[key]||[]);if(!n)return;n.checked=!n.checked;dispatch(n);setTimeout(sync,30)}
+function supportedKeys(){return Object.keys(CONTROL_MAP).filter(k=>control(k))}
+function setAll(value){for(const k of supportedKeys())setControl(k,value);setTimeout(sync,60)}
+function toggleKey(key){const n=control(key);if(!n)return;n.checked=!n.checked;dispatch(n);setTimeout(sync,40)}
 function sync(){
- document.querySelectorAll('[data-state]').forEach(n=>{
+ document.querySelectorAll('#journeySymbolGroup [data-state]').forEach(n=>{
   const key=n.dataset.state,v=getControl(key);
   if(v===null){n.textContent='N/A';n.style.opacity='.45';return}
   n.textContent=v?'BẬT':'TẮT';n.style.opacity='1';n.style.color=v?'#287247':'#a33a31';
  });
- document.querySelectorAll('.journey-symbol-toggle').forEach(btn=>{
+ document.querySelectorAll('#journeySymbolGroup .journey-symbol-toggle').forEach(btn=>{
   const v=getControl(btn.dataset.key);btn.disabled=v===null;btn.style.opacity=v===null?'.5':'1';
  });
 }
 function bind(){
  $('journeySymbolsShowAll')?.addEventListener('click',()=>setAll(true));
  $('journeySymbolsHideAll')?.addEventListener('click',()=>setAll(false));
- document.querySelectorAll('.journey-symbol-toggle').forEach(btn=>btn.addEventListener('click',()=>toggleKey(btn.dataset.key)));
+ document.querySelectorAll('#journeySymbolGroup .journey-symbol-toggle').forEach(btn=>btn.addEventListener('click',()=>toggleKey(btn.dataset.key)));
  $('journeySymbolCollapse')?.addEventListener('click',()=>{
   const body=$('journeySymbolBody'),btn=$('journeySymbolCollapse');if(!body||!btn)return;
   body.hidden=!body.hidden;btn.textContent=body.hidden?'Mở':'Thu gọn';save();
  });
  try{const s=JSON.parse(localStorage.getItem(STORE)||'{}');if(s.open===false){$('journeySymbolBody').hidden=true;$('journeySymbolCollapse').textContent='Mở'}}catch{}
- const mo=new MutationObserver(()=>sync());
- mo.observe(document.querySelector('.controls'),{childList:true,subtree:true,attributes:true,attributeFilter:['checked']});
- document.querySelector('.controls').addEventListener('change',()=>setTimeout(sync,0));
+ const controls=document.querySelector('.controls');
+ try{new MutationObserver(()=>sync()).observe(controls,{childList:true,subtree:true})}catch{}
+ controls.addEventListener('change',()=>setTimeout(sync,0));
 }
 let tries=0;
 function boot(){tries++;if(inject())return;if(tries<200)setTimeout(boot,100)}
