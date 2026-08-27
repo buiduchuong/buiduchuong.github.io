@@ -103,18 +103,12 @@ async function importBrowserDataFile(file){
     if(!entries.length)throw new Error('File sao lưu không có dữ liệu localStorage.');
     const source=payload.origin&&payload.origin!==location.origin?`\nFile được xuất từ: ${payload.origin}\nTrang hiện tại: ${location.origin}`:'';
     if(!confirm(`Nhập ${entries.length} mục dữ liệu? Dữ liệu trùng tên trong trình duyệt hiện tại sẽ bị thay thế.${source}`))return;
-    const previous=new Map(entries.map(([key])=>[key,localStorage.getItem(key)])),written=[];
-    try{
-      for(const [key,value] of entries){localStorage.setItem(key,value);written.push(key)}
-      const records=Array.isArray(payload.indexedDB?.records)?payload.indexedDB.records:[];
-      const restored=await window.__VN_PERSIST?.restoreBackups?.(records)||0;
-      await window.__VN_PERSIST?.flush?.();
-      alert(`Đã nhập ${entries.length} mục dữ liệu và ${restored} bản sao IndexedDB. Trang sẽ tải lại để hiển thị đầy đủ ảnh và cấu hình.`);
-      location.reload();
-    }catch(e){
-      written.forEach(key=>{const value=previous.get(key);if(value==null)localStorage.removeItem(key);else localStorage.setItem(key,value)});
-      throw e;
-    }
+    payload.localStorage['vn-map-tour-point-shapes-visible-v1']='1';
+    try{const shapes=JSON.parse(payload.localStorage['vn-map-flag-shapes-v1']||'null');if(shapes&&typeof shapes==='object'){shapes.show=true;payload.localStorage['vn-map-flag-shapes-v1']=JSON.stringify(shapes)}}catch{}
+    if(!window.__VN_PERSIST?.stageImport)throw new Error('Bộ nhập dữ liệu chưa tải xong. Hãy Ctrl+F5 rồi thử lại.');
+    await window.__VN_PERSIST.stageImport(payload);
+    alert('Đã chuẩn bị xong dữ liệu. Trang sẽ tải lại và áp dụng bản sao lưu trước khi các lớp ảnh khởi động.');
+    location.reload();
   }catch(e){console.error(e);alert('Không nhập được toàn bộ dữ liệu: '+(e?.message||e))}
   finally{if(input)input.value='';if(button){button.disabled=false;button.textContent=oldText}}
 }

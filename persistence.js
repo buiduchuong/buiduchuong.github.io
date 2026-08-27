@@ -125,6 +125,7 @@ const KEYS=['vn-map-editor-v4','vn-map-label-config-v2','vn-xuyen-viet-route-v1'
 const DB_NAME='vn-map-editor-safe-storage';
 const DB_STORE='backups';
 const DB_VERSION=1;
+const PENDING_IMPORT_KEY='__vn-map-full-import-pending__';
 let db=null;
 const last=new Map();
 
@@ -153,6 +154,10 @@ function getAllBackups(){return new Promise(resolve=>{
   if(!db)return resolve([]);
   try{const r=db.transaction(DB_STORE,'readonly').objectStore(DB_STORE).getAll();r.onsuccess=()=>resolve(Array.isArray(r.result)?r.result:[]);r.onerror=()=>resolve([])}catch{resolve([])}
 })}
+function deleteBackup(key){return new Promise(resolve=>{
+  if(!db)return resolve(false);
+  try{const tx=db.transaction(DB_STORE,'readwrite');tx.objectStore(DB_STORE).delete(key);tx.oncomplete=()=>resolve(true);tx.onerror=()=>resolve(false);tx.onabort=()=>resolve(false)}catch{resolve(false)}
+})}
 function restoreBackups(records){return new Promise((resolve,reject)=>{
   if(!db||!Array.isArray(records))return resolve(0);
   const valid=records.filter(r=>r&&typeof r.key==='string'&&typeof r.value==='string');
@@ -163,12 +168,38 @@ function restoreBackups(records){return new Promise((resolve,reject)=>{
     tx.oncomplete=()=>resolve(valid.length);tx.onerror=()=>reject(tx.error||new Error('Không ghi được IndexedDB'));tx.onabort=()=>reject(tx.error||new Error('IndexedDB đã hủy thao tác'));
   }catch(e){reject(e)}
 })}
+async function stageImport(payload){
+  if(!db)throw new Error('Trình duyệt không mở được IndexedDB để chuẩn bị nhập dữ liệu.');
+  const ok=await putBackup(PENDING_IMPORT_KEY,JSON.stringify(payload));
+  if(!ok)throw new Error('Không lưu được bản nhập tạm thời vào IndexedDB.');
+  return true
+}
+async function applyPendingImport(){
+  const rec=await getBackup(PENDING_IMPORT_KEY);
+  if(!rec?.value)return null;
+  let payload;
+  try{payload=JSON.parse(rec.value)}catch{await deleteBackup(PENDING_IMPORT_KEY);throw new Error('Bản nhập tạm thời bị lỗi định dạng.')}
+  const source=payload?.localStorage;
+  if(payload?.format!=='vn-map-browser-backup'||payload?.version!==1||!source||typeof source!=='object'||Array.isArray(source)){await deleteBackup(PENDING_IMPORT_KEY);throw new Error('Bản nhập tạm thời không hợp lệ.')}
+  const entries=Object.entries(source).filter(([key,value])=>typeof key==='string'&&typeof value==='string'),previous=new Map(entries.map(([key])=>[key,localStorage.getItem(key)])),written=[];
+  try{
+    for(const [key,value] of entries){localStorage.setItem(key,value);written.push(key)}
+    const records=Array.isArray(payload.indexedDB?.records)?payload.indexedDB.records:[];
+    const restored=await restoreBackups(records);
+    await deleteBackup(PENDING_IMPORT_KEY);
+    return{entries:entries.length,backups:restored}
+  }catch(e){
+    written.forEach(key=>{const value=previous.get(key);if(value==null)localStorage.removeItem(key);else localStorage.setItem(key,value)});
+    await deleteBackup(PENDING_IMPORT_KEY);
+    throw e
+  }
+}
 async function restoreMissing(){let count=0;for(const key of KEYS){let value=null;try{value=localStorage.getItem(key)}catch{}if(value!=null){last.set(key,value);continue}const rec=await getBackup(key);if(rec&&typeof rec.value==='string'){try{localStorage.setItem(key,rec.value);last.set(key,rec.value);count++}catch{}}}return count}
 async function backupChanged(showStatus=true){const jobs=[];let changed=false;for(const key of KEYS){let value=null;try{value=localStorage.getItem(key)}catch{}if(value==null)continue;if(last.get(key)!==value){last.set(key,value);changed=true;jobs.push(putBackup(key,value))}}if(changed&&showStatus)status('Đang lưu…','saving');if(jobs.length){const ok=(await Promise.all(jobs)).every(Boolean);if(showStatus)status(ok?'✓ Đã lưu an toàn':'✓ Đã lưu trên trình duyệt',ok?'saved':'local')}return changed}
 async function backupAll(showStatus=false){const jobs=[];for(const key of KEYS){let value=null;try{value=localStorage.getItem(key)}catch{}if(value!=null){last.set(key,value);jobs.push(putBackup(key,value))}}if(jobs.length){if(showStatus)status('Đang lưu…','saving');const ok=(await Promise.all(jobs)).every(Boolean);if(showStatus)status(ok?'✓ Đã lưu an toàn':'✓ Đã lưu trên trình duyệt',ok?'saved':'local')}}
-async function init(){status('Đang kiểm tra bản lưu…','saving');try{db=await openDb()}catch(e){console.warn('IndexedDB unavailable',e)}const restored=await restoreMissing();await backupAll(false);status(restored?`✓ Đã khôi phục ${restored} cấu hình`:'✓ Đã bật lưu an toàn','saved');try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{}return{restored,indexedDB:!!db}}
+async function init(){status('Đang kiểm tra bản lưu…','saving');try{db=await openDb()}catch(e){console.warn('IndexedDB unavailable',e)}let imported=null,importError=null;try{imported=await applyPendingImport()}catch(e){importError=e;console.error('Full browser data import failed',e)}const restored=await restoreMissing();await backupAll(false);status(importError?'Không nhập được dữ liệu: '+importError.message:imported?`✓ Đã nhập ${imported.entries} mục dữ liệu và ${imported.backups} bản sao`:restored?`✓ Đã khôi phục ${restored} cấu hình`:'✓ Đã bật lưu an toàn',importError?'error':'saved');try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{}return{restored,imported,importError,indexedDB:!!db}}
 window.__VN_PERSIST_READY=init();
-window.__VN_PERSIST={flush:()=>backupAll(true),getAllBackups,restoreBackups};
+window.__VN_PERSIST={flush:()=>backupAll(true),getAllBackups,restoreBackups,stageImport};
 setInterval(()=>backupChanged(true),800);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')backupAll(false)});
 window.addEventListener('pagehide',()=>backupAll(false));
