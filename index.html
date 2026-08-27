@@ -137,9 +137,11 @@
       <div class="row"><button id="exportAll" class="btn primary">Xuất SVG</button><button id="resetAll" class="btn">Khôi phục tất cả</button></div>
       <div class="row"><button id="exportConfig" class="btn">Xuất cấu hình</button><button id="importConfig" class="btn">Nhập cấu hình</button></div>
       <button id="exportBrowserData" class="btn primary" type="button" style="width:100%;margin-top:7px">Xuất toàn bộ dữ liệu trình duyệt</button>
+      <button id="importBrowserData" class="btn" type="button" style="width:100%;margin-top:7px">Nhập toàn bộ dữ liệu trình duyệt</button>
       <input id="configFile" type="file" accept="application/json" hidden>
+      <input id="browserDataFile" type="file" accept="application/json,.json" hidden>
       <div id="saveStatus" class="mode-note">Đang kiểm tra bản lưu…</div>
-      <div class="tip">Tự lưu vào localStorage và sao lưu dự phòng bằng IndexedDB. “Xuất toàn bộ” lấy cả dữ liệu nhập tay, ảnh đã nhúng và bản sao IndexedDB vào một file JSON.</div>
+      <div class="tip">“Xuất/Nhập toàn bộ” sao lưu và khôi phục dữ liệu nhập tay, ảnh đã nhúng, localStorage cùng bản sao IndexedDB bằng một file JSON.</div>
     </div>
 
     <div class="group">
@@ -186,14 +188,14 @@
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="persistence.js?v=7"></script>
+<script src="persistence.js?v=8"></script>
 <script src="export-image-report.js?v=1"></script>
 <script src="tour-point-shapes.js?v=11"></script>
 <script>
 (()=>{
   const ready=window.__VN_PERSIST_READY||Promise.resolve();
   const load=src=>new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error('Không tải được '+src));document.body.appendChild(s)});
-  ready.catch(err=>console.warn('Persistence init failed',err)).then(()=>load('editor.js?v=8')).then(()=>load('neighbor-country-outlines.js?v=4')).then(()=>load('archipelago-labels.js?v=1')).then(()=>load('tour-route.js?v=9')).then(()=>load('flag-tools.js?v=3')).then(()=>load('food-tools.js?v=3')).then(()=>load('tour-detail-markers.js?v=3')).then(()=>load('tour-detail-position-fix.js?v=7')).then(()=>load('export-tools.js?v=9')).catch(err=>{console.error(err);const n=document.getElementById('saveStatus');if(n)n.textContent='Lỗi tải editor: '+err.message});
+  ready.catch(err=>console.warn('Persistence init failed',err)).then(()=>load('editor.js?v=9')).then(()=>load('neighbor-country-outlines.js?v=4')).then(()=>load('archipelago-labels.js?v=1')).then(()=>load('tour-route.js?v=9')).then(()=>load('flag-tools.js?v=3')).then(()=>load('food-tools.js?v=3')).then(()=>load('tour-detail-markers.js?v=3')).then(()=>load('tour-detail-position-fix.js?v=7')).then(()=>load('export-tools.js?v=9')).catch(err=>{console.error(err);const n=document.getElementById('saveStatus');if(n)n.textContent='Lỗi tải editor: '+err.message});
 })();
 </script>
 </body>

@@ -153,12 +153,22 @@ function getAllBackups(){return new Promise(resolve=>{
   if(!db)return resolve([]);
   try{const r=db.transaction(DB_STORE,'readonly').objectStore(DB_STORE).getAll();r.onsuccess=()=>resolve(Array.isArray(r.result)?r.result:[]);r.onerror=()=>resolve([])}catch{resolve([])}
 })}
+function restoreBackups(records){return new Promise((resolve,reject)=>{
+  if(!db||!Array.isArray(records))return resolve(0);
+  const valid=records.filter(r=>r&&typeof r.key==='string'&&typeof r.value==='string');
+  if(!valid.length)return resolve(0);
+  try{
+    const tx=db.transaction(DB_STORE,'readwrite'),store=tx.objectStore(DB_STORE);
+    valid.forEach(r=>store.put({key:r.key,value:r.value,updatedAt:Number(r.updatedAt)||Date.now()}));
+    tx.oncomplete=()=>resolve(valid.length);tx.onerror=()=>reject(tx.error||new Error('Không ghi được IndexedDB'));tx.onabort=()=>reject(tx.error||new Error('IndexedDB đã hủy thao tác'));
+  }catch(e){reject(e)}
+})}
 async function restoreMissing(){let count=0;for(const key of KEYS){let value=null;try{value=localStorage.getItem(key)}catch{}if(value!=null){last.set(key,value);continue}const rec=await getBackup(key);if(rec&&typeof rec.value==='string'){try{localStorage.setItem(key,rec.value);last.set(key,rec.value);count++}catch{}}}return count}
 async function backupChanged(showStatus=true){const jobs=[];let changed=false;for(const key of KEYS){let value=null;try{value=localStorage.getItem(key)}catch{}if(value==null)continue;if(last.get(key)!==value){last.set(key,value);changed=true;jobs.push(putBackup(key,value))}}if(changed&&showStatus)status('Đang lưu…','saving');if(jobs.length){const ok=(await Promise.all(jobs)).every(Boolean);if(showStatus)status(ok?'✓ Đã lưu an toàn':'✓ Đã lưu trên trình duyệt',ok?'saved':'local')}return changed}
 async function backupAll(showStatus=false){const jobs=[];for(const key of KEYS){let value=null;try{value=localStorage.getItem(key)}catch{}if(value!=null){last.set(key,value);jobs.push(putBackup(key,value))}}if(jobs.length){if(showStatus)status('Đang lưu…','saving');const ok=(await Promise.all(jobs)).every(Boolean);if(showStatus)status(ok?'✓ Đã lưu an toàn':'✓ Đã lưu trên trình duyệt',ok?'saved':'local')}}
 async function init(){status('Đang kiểm tra bản lưu…','saving');try{db=await openDb()}catch(e){console.warn('IndexedDB unavailable',e)}const restored=await restoreMissing();await backupAll(false);status(restored?`✓ Đã khôi phục ${restored} cấu hình`:'✓ Đã bật lưu an toàn','saved');try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch{}return{restored,indexedDB:!!db}}
 window.__VN_PERSIST_READY=init();
-window.__VN_PERSIST={flush:()=>backupAll(true),getAllBackups};
+window.__VN_PERSIST={flush:()=>backupAll(true),getAllBackups,restoreBackups};
 setInterval(()=>backupChanged(true),800);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')backupAll(false)});
 window.addEventListener('pagehide',()=>backupAll(false));
