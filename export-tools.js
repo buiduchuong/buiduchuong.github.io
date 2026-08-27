@@ -175,7 +175,7 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
 
 (()=>{
   if(window.__VN_NOTE_TOOL||document.querySelector('script[data-vn-note-tool]'))return;
-  const s=document.createElement('script');s.src='note-tools.js?v=4';s.dataset.vnNoteTool='1';s.onerror=()=>console.warn('Không tải được công cụ ghi chú');document.body.appendChild(s);
+  const s=document.createElement('script');s.src='note-tools.js?v=5';s.dataset.vnNoteTool='1';s.onerror=()=>console.warn('Không tải được công cụ ghi chú');document.body.appendChild(s);
 })();
 
 (()=>{

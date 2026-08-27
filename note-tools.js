@@ -16,6 +16,48 @@ const el=(tag,a={})=>{const n=document.createElementNS(NS,tag);Object.entries(a)
 const FONT='Roboto, Arial, "Segoe UI Symbol", "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
 const ICON_FONT='Roboto, Arial, "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif';
 const DEFAULT_ICON_COLORS={departure:'#e51d49',xvRoute:'#d71945',pickupRoute:'#e51d49',order:'#e51d49',food:'#f08a24',visit:'#d24b58',stay:'#3f79c5',other:'#222222'};
+const CHECKIN_PRESET=`## 1. BẮC TRUNG BỘ & BẮC BỘ
+01 Quảng Bình – Vũng Chùa Đảo Yến
+02 Quảng Bình – Động Phong Nha
+35 Quảng Trị – Nghĩa trang Trường Sơn
+36 Hà Tĩnh – Ngã Ba Đồng Lộc
+37 Nghệ An – Làng Sen
+38 Ninh Bình – Tràng An
+## 2. DUYÊN HẢI MIỀN TRUNG
+03 Đà Nẵng – Bà Nà Hills
+04 Hội An – Rừng Dừa Bảy Mẫu
+05 Bình Định – Eo Gió
+06 Bình Định – Bảo tàng Quang Trung
+24 Bình Thuận – Mũi Né
+25 Bình Thuận – Bàu Trắng
+26 Ninh Thuận – Vịnh Vĩnh Hy
+27 Khánh Hòa – VinWonders
+28 Khánh Hòa – Suối Hoa Lan
+29 Phú Yên – Vịnh Vũng Rô
+30 Phú Yên – Gành Đá Dĩa
+31 Quảng Ngãi – Đảo Lý Sơn
+32 Quảng Nam – Tượng đài Mẹ Thứ
+33 Quảng Nam – Cù Lao Chàm
+34 Đà Nẵng – Núi Thần Tài
+## 3. TÂY NGUYÊN
+07 Kon Tum – Cửa khẩu Bờ Y
+08 Gia Lai – Biển Hồ T’Nưng
+09 Gia Lai – Chùa Minh Thành
+10 Đắk Lắk – Thác Dray Sáp
+11 Đắk Nông – Tà Đùng
+12 Đà Lạt – Hồ Tuyền Lâm
+13 Đà Lạt – Fresh Garden
+14 Đà Lạt – Chùa Linh Phước
+## 4. NAM BỘ
+15 Tiền Giang – Cù lao Thới Sơn
+16 Cà Mau – Đất Mũi
+17 Kiên Giang – U Minh Thượng
+18 An Giang – Rừng Tràm Trà Sư
+19 Đồng Tháp – Tràm Chim
+20 Đồng Tháp – Làng hoa Sa Đéc
+21 TP.HCM – Landmark 81
+22 Tây Ninh – Núi Bà Đen
+23 Vũng Tàu – Mũi Nghinh Phong`;
 const state={title:'GHI CHÚ',text:'',x:36,y:730,width:300,fontSize:16,iconScale:1.35,bg:'#fff0c9',color:'#222222',border:'#555555',borderWidth:2,iconColors:{...DEFAULT_ICON_COLORS},drag:null,saveTimer:null};
 let db=null;
 let observer=null;
@@ -159,6 +201,25 @@ function renderLegendLine(g,line,y,L){
   const tx=el('text',{x:textX,y,'font-family':FONT,'font-size':state.fontSize,'font-weight':500,fill:state.color});tx.textContent=info.rest||' ';g.appendChild(tx);
   return true;
 }
+function checkinColor(number=0,title=''){
+  if(/TÂY NGUYÊN/i.test(title)||(number>=7&&number<=14))return'#c87518';
+  if(/NAM BỘ/i.test(title)||(number>=15&&number<=23))return'#278247';
+  if(/BẮC TRUNG BỘ|BẮC BỘ/i.test(title)||[1,2,35,36,37,38].includes(number))return'#70409b';
+  return'#246aa4';
+}
+function renderCheckinLine(g,line,y,L){
+  const raw=String(line||'').trim(),header=raw.match(/^##\s*(.+)$/u);
+  if(header){
+    const color=checkinColor(0,header[1]),h=state.fontSize*1.34,top=y-state.fontSize*.98;
+    g.appendChild(el('rect',{x:L.pad,y:top,width:state.width-L.pad*2,height:h,rx:h*.3,ry:h*.3,fill:color,'fill-opacity':.13}));
+    const t=el('text',{x:L.pad+state.fontSize*.55,y:y-state.fontSize*.02,'font-family':FONT,'font-size':state.fontSize*.92,'font-weight':900,fill:color});t.textContent=header[1];g.appendChild(t);return true
+  }
+  const item=raw.match(/^(\d{2})\s+(.+)$/u);if(!item)return false;
+  const number=Number(item[1]),color=checkinColor(number),r=state.fontSize*.55,cx=L.pad+r,cy=y-state.fontSize*.34;
+  g.appendChild(el('circle',{cx,cy,r,fill:color}));
+  const badge=el('text',{x:cx,y:cy+state.fontSize*.2,'text-anchor':'middle','font-family':FONT,'font-size':state.fontSize*.55,'font-weight':900,fill:'#ffffff'});badge.textContent=item[1];g.appendChild(badge);
+  const text=el('text',{x:L.pad+state.fontSize*1.48,y,'font-family':FONT,'font-size':state.fontSize,'font-weight':550,fill:state.color});text.textContent=item[2];g.appendChild(text);return true
+}
 function render(){
   if(!showToggle.checked){layer.replaceChildren();return}
   const L=noteLayout(),g=el('g',{class:'pickup-card note-card','data-note-owned':'1',transform:`translate(${state.x} ${state.y})`});
@@ -173,6 +234,7 @@ function render(){
   let plainGroup=null;
   L.body.forEach((line,i)=>{
     const yy=firstY+i*L.lineH;
+    if(renderCheckinLine(g,line,yy,L))return;
     if(renderLegendLine(g,line,yy,L))return;
     if(!plainGroup){plainGroup=el('text',{x:L.pad,y:firstY,'font-family':FONT,'font-size':state.fontSize,'font-weight':500,fill:state.color});g.appendChild(plainGroup)}
     const sp=el('tspan',{x:L.pad,y:yy});sp.textContent=line||' ';plainGroup.appendChild(sp);
@@ -211,6 +273,11 @@ function setField(key,v){
   save();render();syncUI()
 }
 function resetIconColors(){state.iconColors={...DEFAULT_ICON_COLORS};save();render();syncUI()}
+function applyCheckinPreset(){
+  if(state.text.trim()&&!confirm('Thay nội dung ghi chú hiện tại bằng mẫu 38 điểm check-in?'))return;
+  Object.assign(state,{title:'38 ĐIỂM CHECK-IN XUYÊN VIỆT',text:CHECKIN_PRESET,x:18,y:18,width:410,fontSize:10,bg:'#fffdf3',color:'#263845',border:'#60746f',borderWidth:1.5});
+  showToggle.checked=true;showToggle.dispatchEvent(new Event('change',{bubbles:true}));save(true);render();syncUI()
+}
 function renameOldToggle(){
   const lab=showToggle.closest('label');if(!lab)return;
   [...lab.childNodes].forEach(n=>{if(n.nodeType===Node.TEXT_NODE&&n.textContent.trim())n.textContent=' Hiện ghi chú'});
@@ -220,10 +287,11 @@ function injectUI(){
   renameOldToggle();
   const target=showToggle.closest('.group');if(!target)return;
   const group=document.createElement('div');group.className='group';group.id='noteEditorGroup';
-  group.innerHTML=`<div class="group-title">Ghi chú</div><label>Tiêu đề</label><input id="noteTitle" type="text" placeholder="GHI CHÚ"><label style="margin-top:8px">Nội dung ghi chú</label><textarea id="noteText" rows="7" placeholder="Dán hoặc nhập ghi chú tại đây…\nHỗ trợ: ★ • → ✓ © ™ ⏰ 📍 😀"></textarea><div class="tip">Có thể Ctrl+V nội dung từ Word, Zalo, Excel hoặc website. Ký tự Unicode, dấu, emoji và ký hiệu đặc biệt được giữ nguyên.</div><details id="noteLegendColors" style="margin-top:9px"><summary style="cursor:pointer;font-size:11px;font-weight:800;color:#5d554e">Màu icon / ký hiệu trong ghi chú</summary><div class="row"><div><label>★ Điểm tập kết</label><input id="noteIconDeparture" type="color"></div><div><label>━━ Tuyến Xuyên Việt</label><input id="noteIconXvRoute" type="color"></div></div><div class="row"><div><label>--- Tuyến về Hà Nội</label><input id="noteIconPickupRoute" type="color"></div><div><label>① Thứ tự hành trình</label><input id="noteIconOrder" type="color"></div></div><div class="row"><div><label>Ăn uống</label><input id="noteIconFood" type="color"></div><div><label>Tham quan</label><input id="noteIconVisit" type="color"></div></div><div class="row"><div><label>Lưu trú</label><input id="noteIconStay" type="color"></div><div><label>&nbsp;</label><button id="resetNoteIconColors" class="btn" type="button" style="width:100%">Màu mặc định</button></div></div><div class="tip">Các dòng bắt đầu bằng ★, ━━, ---, ①, 🍴/🍽, 🏛/🛕 hoặc 🏨/🛏 sẽ tự tách ký hiệu ra để tô màu riêng; phần chữ vẫn dùng “Màu chữ”.</div></details><div class="row"><div><label>Chiều rộng bảng</label><input id="noteWidth" type="number" min="180" max="650" step="5"></div><div><label>Cỡ chữ</label><input id="noteFontSize" type="number" min="8" max="32" step="1"></div></div><label style="margin-top:8px">Kích thước icon</label><div class="value-line"><input id="noteIconScaleRange" type="range" min="80" max="220" step="5"><input id="noteIconScale" type="number" min="80" max="220" step="5"></div><div class="tip">100% = cỡ cũ. Mặc định mới 135% để icon nổi bật hơn trong bảng nhỏ.</div><div class="row"><div><label>Màu nền</label><input id="noteBg" type="color"></div><div><label>Màu chữ</label><input id="noteColor" type="color"></div></div><div class="row"><div><label>Màu viền</label><input id="noteBorder" type="color"></div><div><label>Độ dày viền</label><input id="noteBorderWidth" type="number" min="0" max="8" step="0.5"></div></div><div class="row"><div><label>X</label><input id="noteX" type="number" step="1"></div><div><label>Y</label><input id="noteY" type="number" step="1"></div></div><div class="row"><button id="centerNote" class="btn">Đưa vào giữa</button><button id="clearNote" class="btn danger">Xóa nội dung</button></div><div class="tip">Ô ghi chú tự tăng chiều cao theo nội dung và có thể kéo trực tiếp trên bản đồ. Ghi chú được xuất cùng SVG / PNG / PDF.</div>`;
+  group.innerHTML=`<div class="group-title">Ghi chú</div><button id="applyCheckinPreset" class="btn primary" type="button" style="width:100%;margin-bottom:9px">Tạo ghi chú 38 điểm check-in</button><label>Tiêu đề</label><input id="noteTitle" type="text" placeholder="GHI CHÚ"><label style="margin-top:8px">Nội dung ghi chú</label><textarea id="noteText" rows="7" placeholder="Dán hoặc nhập ghi chú tại đây…\nHỗ trợ: ★ • → ✓ © ™ ⏰ 📍 😀"></textarea><div class="tip">Dòng bắt đầu bằng ## là tiêu đề vùng; dòng bắt đầu bằng số 01–38 sẽ tự tạo huy hiệu màu như mẫu.</div><details id="noteLegendColors" style="margin-top:9px"><summary style="cursor:pointer;font-size:11px;font-weight:800;color:#5d554e">Màu icon / ký hiệu trong ghi chú</summary><div class="row"><div><label>★ Điểm tập kết</label><input id="noteIconDeparture" type="color"></div><div><label>━━ Tuyến Xuyên Việt</label><input id="noteIconXvRoute" type="color"></div></div><div class="row"><div><label>--- Tuyến về Hà Nội</label><input id="noteIconPickupRoute" type="color"></div><div><label>① Thứ tự hành trình</label><input id="noteIconOrder" type="color"></div></div><div class="row"><div><label>Ăn uống</label><input id="noteIconFood" type="color"></div><div><label>Tham quan</label><input id="noteIconVisit" type="color"></div></div><div class="row"><div><label>Lưu trú</label><input id="noteIconStay" type="color"></div><div><label>&nbsp;</label><button id="resetNoteIconColors" class="btn" type="button" style="width:100%">Màu mặc định</button></div></div><div class="tip">Các dòng bắt đầu bằng ★, ━━, ---, ①, 🍴/🍽, 🏛/🛕 hoặc 🏨/🛏 sẽ tự tách ký hiệu ra để tô màu riêng; phần chữ vẫn dùng “Màu chữ”.</div></details><div class="row"><div><label>Chiều rộng bảng</label><input id="noteWidth" type="number" min="180" max="650" step="5"></div><div><label>Cỡ chữ</label><input id="noteFontSize" type="number" min="8" max="32" step="1"></div></div><label style="margin-top:8px">Kích thước icon</label><div class="value-line"><input id="noteIconScaleRange" type="range" min="80" max="220" step="5"><input id="noteIconScale" type="number" min="80" max="220" step="5"></div><div class="tip">100% = cỡ cũ. Mặc định mới 135% để icon nổi bật hơn trong bảng nhỏ.</div><div class="row"><div><label>Màu nền</label><input id="noteBg" type="color"></div><div><label>Màu chữ</label><input id="noteColor" type="color"></div></div><div class="row"><div><label>Màu viền</label><input id="noteBorder" type="color"></div><div><label>Độ dày viền</label><input id="noteBorderWidth" type="number" min="0" max="8" step="0.5"></div></div><div class="row"><div><label>X</label><input id="noteX" type="number" step="1"></div><div><label>Y</label><input id="noteY" type="number" step="1"></div></div><div class="row"><button id="centerNote" class="btn">Đưa vào giữa</button><button id="clearNote" class="btn danger">Xóa nội dung</button></div><div class="tip">Ô ghi chú tự tăng chiều cao theo nội dung và có thể kéo trực tiếp trên bản đồ. Ghi chú được xuất cùng SVG / PNG / PDF.</div>`;
   target.insertAdjacentElement('beforebegin',group);
   [['noteTitle','title'],['noteText','text'],['noteWidth','width'],['noteFontSize','fontSize'],['noteIconScaleRange','iconScale'],['noteIconScale','iconScale'],['noteBg','bg'],['noteColor','color'],['noteBorder','border'],['noteBorderWidth','borderWidth'],['noteX','x'],['noteY','y'],['noteIconDeparture','icon.departure'],['noteIconXvRoute','icon.xvRoute'],['noteIconPickupRoute','icon.pickupRoute'],['noteIconOrder','icon.order'],['noteIconFood','icon.food'],['noteIconVisit','icon.visit'],['noteIconStay','icon.stay']].forEach(([id,key])=>$(id)?.addEventListener('input',e=>setField(key,e.target.value)));
   $('resetNoteIconColors')?.addEventListener('click',resetIconColors);
+  $('applyCheckinPreset')?.addEventListener('click',applyCheckinPreset);
   $('centerNote')?.addEventListener('click',centerNote);
   $('clearNote')?.addEventListener('click',()=>{state.text='';save();render();syncUI();$('noteText')?.focus()});
   syncUI();
