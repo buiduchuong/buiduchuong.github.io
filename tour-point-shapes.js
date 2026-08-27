@@ -117,5 +117,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 (()=>{
  if(window.__VN_PNG_EXPORT_FIX||document.querySelector('script[data-vn-png-export-fix]'))return;
- const s=document.createElement('script');s.src='png-export-fix.js?v=4';s.dataset.vnPngExportFix='1';s.onerror=()=>console.warn('Không tải được bộ sửa xuất PNG 4K/8K');document.body.appendChild(s);
+ const s=document.createElement('script');s.src='png-export-fix.js?v=12';s.dataset.vnPngExportFix='1';s.onerror=()=>console.warn('Không tải được bộ sửa xuất PNG 4K/8K');document.body.appendChild(s);
 })();
