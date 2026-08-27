@@ -121,7 +121,7 @@ if(!window.__VN_GEOJSON_FETCH_GUARD){
   };
 }
 
-const KEYS=['vn-map-editor-v4','vn-map-label-config-v2','vn-xuyen-viet-route-v1','vn-map-flags-v1','vn-map-food-v1','vn-map-flag-shapes-v1'];
+const KEYS=['vn-map-editor-v4','vn-map-label-config-v2','vn-xuyen-viet-route-v1','vn-map-flags-v1','vn-map-food-v1','vn-map-flag-shapes-v1','vn-map-checkin-note-v1'];
 const DB_NAME='vn-map-editor-safe-storage';
 const DB_STORE='backups';
 const DB_VERSION=1;

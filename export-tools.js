@@ -179,6 +179,11 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
 })();
 
 (()=>{
+  if(window.__VN_CHECKIN_NOTE_TOOL||document.querySelector('script[data-vn-checkin-note-tool]'))return;
+  const s=document.createElement('script');s.src='checkin-note-tools.js?v=1';s.dataset.vnCheckinNoteTool='1';s.onerror=()=>console.warn('Không tải được ghi chú 38 điểm check-in');document.body.appendChild(s);
+})();
+
+(()=>{
   if(window.__VN_DEFAULT_ROUTE_DASH||document.querySelector('script[data-vn-default-route-dash]'))return;
   const s=document.createElement('script');s.src='default-route-dash.js?v=2';s.dataset.vnDefaultRouteDash='1';s.onerror=()=>console.warn('Không tải được kiểu nét đứt cho 13 tuyến Hà Nội');document.body.appendChild(s);
 })();
