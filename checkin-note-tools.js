@@ -9,6 +9,7 @@ const $=id=>document.getElementById(id);
 const svg=$('mapSvg'),viewport=$('viewport'),canvas=$('canvas');
 if(!svg||!viewport||!canvas)return;
 const FONT='Roboto, Arial, sans-serif';
+const PROVINCE_FONT_WEIGHT=700;
 const GROUPS=[
  {title:'1. BẮC TRUNG BỘ & BẮC BỘ',color:'#70409b',items:[[1,'Quảng Bình – Vũng Chùa Đảo Yến'],[2,'Quảng Bình – Động Phong Nha'],[35,'Quảng Trị – Nghĩa trang Trường Sơn'],[36,'Hà Tĩnh – Ngã Ba Đồng Lộc'],[37,'Nghệ An – Làng Sen'],[38,'Ninh Bình – Tràng An']]},
  {title:'2. DUYÊN HẢI MIỀN TRUNG',color:'#246aa4',items:[[3,'Đà Nẵng – Bà Nà Hills'],[4,'Hội An – Rừng Dừa Bảy Mẫu'],[5,'Bình Định – Eo Gió'],[6,'Bình Định – Bảo tàng Quang Trung'],[24,'Bình Thuận – Mũi Né'],[25,'Bình Thuận – Bàu Trắng'],[26,'Ninh Thuận – Vịnh Vĩnh Hy'],[27,'Khánh Hòa – VinWonders'],[28,'Khánh Hòa – Suối Hoa Lan'],[29,'Phú Yên – Vịnh Vũng Rô'],[30,'Phú Yên – Gành Đá Dĩa'],[31,'Quảng Ngãi – Đảo Lý Sơn'],[32,'Quảng Nam – Tượng đài Mẹ Thứ'],[33,'Quảng Nam – Cù Lao Chàm'],[34,'Đà Nẵng – Núi Thần Tài']]},
@@ -40,14 +41,14 @@ function render(){
  const L=layout(),g=el('g',{class:'checkin-note-card',transform:`translate(${state.x} ${state.y})`,'data-checkin-note-owned':'1'});
  g.appendChild(el('rect',{x:0,y:0,width:state.width,height:L.height,rx:9,ry:9,fill:state.bg,stroke:state.border,'stroke-width':state.borderWidth}));
  let y=L.pad;
- if(state.title.trim()){y+=L.titleSize;appendText(g,{x:state.width/2,y,'text-anchor':'middle','font-family':FONT,'font-size':L.titleSize,'font-weight':900,fill:state.color},state.title.trim());y+=7}
+ if(state.title.trim()){y+=L.titleSize;appendText(g,{x:state.width/2,y,'text-anchor':'middle','font-family':FONT,'font-size':L.titleSize,'font-weight':PROVINCE_FONT_WEIGHT,fill:state.color},state.title.trim());y+=7}
  for(const row of L.rows){
    if(row.type==='spacer'){y+=L.spacerH;continue}
-   if(row.type==='header'){const top=y+state.fontSize*.12;g.appendChild(el('rect',{x:L.pad,y:top,width:state.width-L.pad*2,height:state.fontSize*1.28,rx:4,ry:4,fill:row.color,'fill-opacity':.14}));y+=state.fontSize*1.08;appendText(g,{x:L.pad+6,y,'font-family':FONT,'font-size':state.fontSize*.92,'font-weight':900,fill:row.color},row.text);y+=L.sectionH-state.fontSize*1.08;continue}
+   if(row.type==='header'){const top=y+state.fontSize*.12;g.appendChild(el('rect',{x:L.pad,y:top,width:state.width-L.pad*2,height:state.fontSize*1.28,rx:4,ry:4,fill:row.color,'fill-opacity':.14}));y+=state.fontSize*1.08;appendText(g,{x:L.pad+6,y,'font-family':FONT,'font-size':state.fontSize*.92,'font-weight':PROVINCE_FONT_WEIGHT,fill:row.color},row.text);y+=L.sectionH-state.fontSize*1.08;continue}
    y+=L.rowH;
-   if(row.type==='text'){appendText(g,{x:L.pad,y,'font-family':FONT,'font-size':state.fontSize,'font-weight':500,fill:state.color},row.text);continue}
-   const r=state.fontSize*.55,cx=L.pad+r,cy=y-state.fontSize*.34;g.appendChild(el('circle',{cx,cy,r,fill:row.color}));appendText(g,{x:cx,y:cy+state.fontSize*.2,'text-anchor':'middle','font-family':FONT,'font-size':state.fontSize*.54,'font-weight':900,fill:'#ffffff'},String(row.number).padStart(2,'0'));
-   const parts=row.text.split(' – '),t=el('text',{x:L.pad+state.fontSize*1.48,y,'font-family':FONT,'font-size':state.fontSize,fill:state.color});const a=el('tspan',{'font-weight':800});a.textContent=parts[0];t.appendChild(a);if(parts.length>1){const b=el('tspan',{'font-weight':500});b.textContent=' – '+parts.slice(1).join(' – ');t.appendChild(b)}g.appendChild(t)
+   if(row.type==='text'){appendText(g,{x:L.pad,y,'font-family':FONT,'font-size':state.fontSize,'font-weight':PROVINCE_FONT_WEIGHT,fill:state.color},row.text);continue}
+   const r=state.fontSize*.55,cx=L.pad+r,cy=y-state.fontSize*.34;g.appendChild(el('circle',{cx,cy,r,fill:row.color}));appendText(g,{x:cx,y:cy+state.fontSize*.2,'text-anchor':'middle','font-family':FONT,'font-size':state.fontSize*.54,'font-weight':PROVINCE_FONT_WEIGHT,fill:'#ffffff'},String(row.number).padStart(2,'0'));
+   appendText(g,{x:L.pad+state.fontSize*1.48,y,'font-family':FONT,'font-size':state.fontSize,'font-weight':PROVINCE_FONT_WEIGHT,fill:state.color},row.text)
  }
  const hint=el('title');hint.textContent='Kéo để di chuyển ghi chú 38 điểm';g.appendChild(hint);g.addEventListener('pointerdown',startDrag);layer.appendChild(g);syncUI()
 }

@@ -180,7 +180,7 @@ setStatus('Mặc định giữ nguyên zoom / pan hiện tại khi xuất. Full 
 
 (()=>{
   if(window.__VN_CHECKIN_NOTE_TOOL||document.querySelector('script[data-vn-checkin-note-tool]'))return;
-  const s=document.createElement('script');s.src='checkin-note-tools.js?v=5';s.dataset.vnCheckinNoteTool='1';s.onerror=()=>console.warn('Không tải được ghi chú 38 điểm check-in');document.body.appendChild(s);
+  const s=document.createElement('script');s.src='checkin-note-tools.js?v=6';s.dataset.vnCheckinNoteTool='1';s.onerror=()=>console.warn('Không tải được ghi chú 38 điểm check-in');document.body.appendChild(s);
 })();
 
 (()=>{
